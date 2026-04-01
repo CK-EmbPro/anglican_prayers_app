@@ -1,0 +1,28 @@
+name: anglican_prayer_app
+description: Igitabo cy'Amasengesho - Anglican Prayer Book of Rwanda
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.2
+  shared_preferences: ^2.3.2
+  flutter_staggered_animations: ^1.1.1
+  google_fonts: ^6.2.1
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/data/prayer_book.json
