@@ -59,130 +59,125 @@ class SectionCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── Left accent bar + icon ──────────────────────────────────────
-            Container(
-              width: 72,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.08),
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(16),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Left panel: tinted bg + icon + number ─────────────────────
+              Container(
+                width: 72,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.08),
+                  borderRadius: const BorderRadius.horizontal(
+                    left: Radius.circular(16),
+                  ),
                 ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: accent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(icon, color: Colors.white, size: 22),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    sectionNumber,
-                    style: GoogleFonts.playfairDisplay(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: accent,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Left accent edge line ───────────────────────────────────────
-            Container(width: 3, color: accent),
-
-            // ── Content ─────────────────────────────────────────────────────
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
+                padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Title block
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          section.title,
-                          style: GoogleFonts.playfairDisplay(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                            height: 1.35,
-                          ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (section.englishTitle.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            section.englishTitle,
-                            style: GoogleFonts.lato(
-                              fontSize: 12,
-                              color: AppColors.textHint,
-                              letterSpacing: 0.2,
-                              fontStyle: FontStyle.italic,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ],
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: accent,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, color: Colors.white, size: 22),
                     ),
-
-                    const SizedBox(height: 12),
-
-                    // Stats row
-                    Row(
-                      children: [
-                        _StatPill(
-                          icon: Icons.layers_outlined,
-                          label: '${section.chapters.length} chapters',
-                          accent: accent,
-                        ),
-                        const SizedBox(width: 8),
-                        _StatPill(
-                          icon: Icons.format_quote_rounded,
-                          label: '${section.totalNonEmptyVerses} verses',
-                          accent: accent,
-                        ),
-                      ],
+                    const SizedBox(height: 8),
+                    Text(
+                      sectionNumber,
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: accent,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
 
-            // ── Chevron ──────────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Center(
-                child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.chevron_right,
-                    size: 18,
-                    color: accent,
+              // ── 3px accent line ────────────────────────────────────────────
+              Container(width: 3, color: accent),
+
+              // ── Content ────────────────────────────────────────────────────
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 12, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        section.title,
+                        style: GoogleFonts.playfairDisplay(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                          height: 1.35,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (section.englishTitle.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          section.englishTitle,
+                          style: GoogleFonts.lato(
+                            fontSize: 12,
+                            color: AppColors.textHint,
+                            letterSpacing: 0.2,
+                            fontStyle: FontStyle.italic,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      const SizedBox(height: 14),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          _StatPill(
+                            icon: Icons.layers_outlined,
+                            label: '${section.chapters.length} chapters',
+                            accent: accent,
+                          ),
+                          _StatPill(
+                            icon: Icons.format_quote_rounded,
+                            label: '${section.totalNonEmptyVerses} verses',
+                            accent: accent,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
-          ],
+
+              // ── Chevron ────────────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: accent,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
