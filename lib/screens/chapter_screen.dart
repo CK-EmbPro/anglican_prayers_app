@@ -18,129 +18,52 @@ const List<Color> _sectionAccents = [
   Color(0xFF1F6FA3),
 ];
 
-class ChapterScreen extends StatefulWidget {
-  final Section section;
-  final Chapter chapter;
-  final int sectionIndex;
-  final int? globalPage;
-
-  const ChapterScreen({
-    super.key,
-    required this.section,
-    required this.chapter,
-    required this.sectionIndex,
-    this.globalPage,
-  });
+/// Reading screen — swipe left/right to navigate between PDF pages.
+class PageReadingScreen extends StatefulWidget {
+  final FlatPage flatPage;
+  const PageReadingScreen({super.key, required this.flatPage});
 
   @override
-  State<ChapterScreen> createState() => _ChapterScreenState();
+  State<PageReadingScreen> createState() => _PageReadingScreenState();
 }
 
-class _ChapterScreenState extends State<ChapterScreen> {
-  final ScrollController _scrollController = ScrollController();
+class _PageReadingScreenState extends State<PageReadingScreen> {
+  late PageController _pageController;
+  late List<FlatPage> _allPages;
+  late int _currentIndex;
   bool _showFontControls = false;
-
-  Color get _accent =>
-      _sectionAccents[widget.sectionIndex % _sectionAccents.length];
-
-  late List<Verse> _displayVerses;
-  late int _resolvedGlobalPage;
 
   @override
   void initState() {
     super.initState();
-    _displayVerses = widget.chapter.verses;
-    _resolvedGlobalPage = widget.globalPage ?? 0;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Resolve global page if not provided
-    if (_resolvedGlobalPage == 0) {
-      final provider = context.read<PrayerBookProvider>();
-      _resolvedGlobalPage =
-          provider.globalPageForChapter(widget.chapter.id) ?? 0;
-    }
+    _allPages = context.read<PrayerBookProvider>().allPages;
+    _currentIndex = _allPages.indexWhere(
+      (fp) => fp.pageNum == widget.flatPage.pageNum,
+    );
+    if (_currentIndex < 0) _currentIndex = 0;
+    _pageController = PageController(initialPage: _currentIndex);
   }
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 
-  void _scrollToTop() {
-    _scrollController.animateTo(
-      0,
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOut,
-    );
-  }
+  FlatPage get _current => _allPages[_currentIndex];
 
-  void _navigatePrev(BuildContext context, PrayerBookProvider provider) {
-    if (_resolvedGlobalPage <= 1) return;
-    final gc = provider.chapterAtPage(_resolvedGlobalPage - 1);
-    if (gc == null) return;
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => ChapterScreen(
-          section: gc.section,
-          chapter: gc.chapter,
-          sectionIndex: gc.sectionIndex,
-          globalPage: gc.globalPage,
-        ),
-        transitionDuration: const Duration(milliseconds: 250),
-        transitionsBuilder: (_, anim, __, child) =>
-            SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(-1, 0),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
-              child: child,
-            ),
-      ),
-    );
-  }
+  Color get _accent =>
+      _sectionAccents[_current.sectionIndex % _sectionAccents.length];
 
-  void _navigateNext(BuildContext context, PrayerBookProvider provider) {
-    if (_resolvedGlobalPage >= provider.totalPages) return;
-    final gc = provider.chapterAtPage(_resolvedGlobalPage + 1);
-    if (gc == null) return;
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => ChapterScreen(
-          section: gc.section,
-          chapter: gc.chapter,
-          sectionIndex: gc.sectionIndex,
-          globalPage: gc.globalPage,
-        ),
-        transitionDuration: const Duration(milliseconds: 250),
-        transitionsBuilder: (_, anim, __, child) =>
-            SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(1, 0),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
-              child: child,
-            ),
-      ),
-    );
-  }
-
-  void _showGoToPageDialog(BuildContext context, PrayerBookProvider provider) {
-    final controller = TextEditingController(
-      text: _resolvedGlobalPage > 0 ? '$_resolvedGlobalPage' : '',
-    );
+  void _showGoToDialog(BuildContext context) {
+    final ctrl = TextEditingController(text: '${_current.pageNum}');
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'Go to prayer',
+          'Jya ku Paji',
           style: GoogleFonts.playfairDisplay(
             fontSize: 17,
             fontWeight: FontWeight.w700,
@@ -148,11 +71,12 @@ class _ChapterScreenState extends State<ChapterScreen> {
           ),
         ),
         content: TextField(
-          controller: controller,
+          controller: ctrl,
           keyboardType: TextInputType.number,
           autofocus: true,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: InputDecoration(
-            hintText: '1 – ${provider.totalPages}',
+            hintText: '1 – ${_allPages.length}',
             prefixIcon: const Icon(Icons.auto_stories_outlined,
                 color: AppColors.primary),
           ),
@@ -160,30 +84,25 @@ class _ChapterScreenState extends State<ChapterScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel',
+            child: Text('Reka',
                 style: GoogleFonts.lato(color: AppColors.grey600)),
           ),
           TextButton(
             onPressed: () {
-              final page = int.tryParse(controller.text.trim());
+              final page = int.tryParse(ctrl.text.trim());
               Navigator.pop(ctx);
               if (page == null) return;
-              final gc = provider.chapterAtPage(page);
-              if (gc == null) return;
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ChapterScreen(
-                    section: gc.section,
-                    chapter: gc.chapter,
-                    sectionIndex: gc.sectionIndex,
-                    globalPage: gc.globalPage,
-                  ),
-                ),
+              final idx =
+                  _allPages.indexWhere((fp) => fp.pageNum == page);
+              if (idx < 0) return;
+              _pageController.animateToPage(
+                idx,
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeInOut,
               );
             },
             child: Text(
-              'Go',
+              'Genda',
               style: GoogleFonts.lato(
                 color: _accent,
                 fontWeight: FontWeight.w700,
@@ -198,237 +117,167 @@ class _ChapterScreenState extends State<ChapterScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PrayerBookProvider>();
-    final totalPages = provider.totalPages;
-
-    final hasPrev = _resolvedGlobalPage > 1;
-    final hasNext = _resolvedGlobalPage < totalPages;
+    final fp = _current;
+    final total = _allPages.length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          // ── App Bar ─────────────────────────────────────────────────────────
-          SliverAppBar(
-            pinned: true,
-            backgroundColor: AppColors.white,
-            foregroundColor: AppColors.textPrimary,
-            elevation: 0,
-            scrolledUnderElevation: 1,
-            shadowColor: AppColors.divider,
-            iconTheme: const IconThemeData(color: AppColors.primary),
-            leading: GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.arrow_back, color: _accent, size: 20),
-              ),
+      appBar: AppBar(
+        backgroundColor: AppColors.white,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        scrolledUnderElevation: 1,
+        shadowColor: AppColors.divider,
+        leading: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
             ),
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Icon(Icons.arrow_back, color: _accent, size: 20),
+          ),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              fp.section.title,
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Row(
               children: [
-                Text(
-                  widget.chapter.title.isEmpty
-                      ? widget.section.title
-                      : widget.chapter.title,
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Row(
-                  children: [
-                    Text(
-                      widget.section.title,
+                if (fp.subsection != null &&
+                    fp.subsection!.title.isNotEmpty) ...[
+                  Flexible(
+                    child: Text(
+                      fp.subsection!.title,
                       style: GoogleFonts.lato(
                         fontSize: 11,
                         color: AppColors.textHint,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    if (_resolvedGlobalPage > 0) ...[
-                      Text(
-                        '  ·  ',
-                        style: GoogleFonts.lato(
-                          fontSize: 11,
-                          color: AppColors.grey400,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () =>
-                            _showGoToPageDialog(context, provider),
-                        child: Text(
-                          'Prayer $_resolvedGlobalPage of $totalPages',
-                          style: GoogleFonts.lato(
-                            fontSize: 11,
-                            color: _accent,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+                  ),
+                  Text('  ·  ',
+                      style: GoogleFonts.lato(
+                          fontSize: 11, color: AppColors.grey400)),
+                ],
+                GestureDetector(
+                  onTap: () => _showGoToDialog(context),
+                  child: Text(
+                    'Paji ${fp.pageNum} muri $total',
+                    style: GoogleFonts.lato(
+                      fontSize: 11,
+                      color: _accent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             ),
-            actions: [
-              // Font size toggle
-              IconButton(
-                icon: Icon(
-                  Icons.text_fields,
-                  color: _showFontControls ? _accent : AppColors.grey600,
-                ),
-                tooltip: 'Font size',
-                onPressed: () =>
-                    setState(() => _showFontControls = !_showFontControls),
-              ),
-              const SizedBox(width: 4),
-            ],
-            bottom: _showFontControls
-                ? PreferredSize(
-                    preferredSize: const Size.fromHeight(52),
-                    child: _FontSizeBar(
-                      provider: provider,
-                      accent: _accent,
-                    ),
-                  )
-                : PreferredSize(
-                    preferredSize: const Size.fromHeight(1),
-                    child: Container(height: 1, color: AppColors.divider),
-                  ),
-          ),
-
-          // ── Legend ──────────────────────────────────────────────────────────
-          SliverToBoxAdapter(child: _LegendBar()),
-
-          // ── Verses ──────────────────────────────────────────────────────────
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final verse = _displayVerses[index];
-                  return VerseTile(
-                    verse: verse,
-                    sectionId: widget.section.id,
-                    sectionTitle: widget.section.title,
-                    sectionSlug: widget.section.slug,
-                    chapterId: widget.chapter.id,
-                    chapterTitle: widget.chapter.title,
-                    globalPage: _resolvedGlobalPage,
-                  );
-                },
-                childCount: _displayVerses.length,
-              ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.text_fields,
+              color: _showFontControls ? _accent : AppColors.grey600,
             ),
+            tooltip: "Ingano y'Inyandiko",
+            onPressed: () =>
+                setState(() => _showFontControls = !_showFontControls),
           ),
-
-          // ── Prev / Next navigation row ───────────────────────────────────────
-          SliverToBoxAdapter(
-            child: _PageNavRow(
-              hasPrev: hasPrev,
-              hasNext: hasNext,
-              accent: _accent,
-              onPrev: () => _navigatePrev(context, provider),
-              onNext: () => _navigateNext(context, provider),
-              currentPage: _resolvedGlobalPage,
-              totalPages: totalPages,
-              onGoTo: () => _showGoToPageDialog(context, provider),
-            ),
-          ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+          const SizedBox(width: 4),
         ],
+        bottom: _showFontControls
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(52),
+                child: _FontSizeBar(provider: provider, accent: _accent),
+              )
+            : PreferredSize(
+                preferredSize: const Size.fromHeight(1),
+                child: Container(height: 1, color: AppColors.divider),
+              ),
       ),
-      floatingActionButton: _ScrollTopFab(
-        scrollController: _scrollController,
-        accent: _accent,
-        onTap: _scrollToTop,
+      body: Column(
+        children: [
+          // Persistent legend bar above the swipeable pages
+          _LegendBar(),
+          // Page swipe hint strip
+          _SwipeHint(
+            currentPage: fp.pageNum,
+            totalPages: total,
+            accent: _accent,
+            onGoTo: () => _showGoToDialog(context),
+          ),
+          // Swipeable page content
+          Expanded(
+            child: PageView.builder(
+              controller: _pageController,
+              onPageChanged: (i) => setState(() => _currentIndex = i),
+              itemCount: _allPages.length,
+              itemBuilder: (context, i) => _SinglePageContent(
+                flatPage: _allPages[i],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ── Page nav row ──────────────────────────────────────────────────────────────
+// ── Swipe hint / page indicator ───────────────────────────────────────────────
 
-class _PageNavRow extends StatelessWidget {
-  final bool hasPrev;
-  final bool hasNext;
-  final Color accent;
-  final VoidCallback onPrev;
-  final VoidCallback onNext;
+class _SwipeHint extends StatelessWidget {
   final int currentPage;
   final int totalPages;
+  final Color accent;
   final VoidCallback onGoTo;
 
-  const _PageNavRow({
-    required this.hasPrev,
-    required this.hasNext,
-    required this.accent,
-    required this.onPrev,
-    required this.onNext,
+  const _SwipeHint({
     required this.currentPage,
     required this.totalPages,
+    required this.accent,
     required this.onGoTo,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.divider),
-      ),
+      color: AppColors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         children: [
-          _NavBtn(
-            icon: Icons.chevron_left,
-            label: 'Previous',
-            enabled: hasPrev,
-            accent: accent,
-            onTap: onPrev,
+          Icon(Icons.swipe, size: 14, color: AppColors.grey400),
+          const SizedBox(width: 6),
+          Text(
+            'Sunika ujye ku paji ikurikira cyangwa ibanze',
+            style: GoogleFonts.lato(
+              fontSize: 11,
+              color: AppColors.textHint,
+            ),
           ),
           const Spacer(),
           GestureDetector(
             onTap: onGoTo,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  currentPage > 0 ? '$currentPage / $totalPages' : '—',
-                  style: GoogleFonts.lato(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: accent,
-                  ),
-                ),
-                Text(
-                  'Tap to jump',
-                  style: GoogleFonts.lato(
-                    fontSize: 10,
-                    color: AppColors.textHint,
-                  ),
-                ),
-              ],
+            child: Text(
+              '$currentPage / $totalPages',
+              style: GoogleFonts.lato(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: accent,
+              ),
             ),
-          ),
-          const Spacer(),
-          _NavBtn(
-            icon: Icons.chevron_right,
-            label: 'Next',
-            enabled: hasNext,
-            accent: accent,
-            onTap: onNext,
-            iconFirst: false,
           ),
         ],
       ),
@@ -436,50 +285,40 @@ class _PageNavRow extends StatelessWidget {
   }
 }
 
-class _NavBtn extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool enabled;
-  final Color accent;
-  final VoidCallback onTap;
-  final bool iconFirst;
+// ── Single page content (scrollable, kept alive for smooth swipe-back) ────────
 
-  const _NavBtn({
-    required this.icon,
-    required this.label,
-    required this.enabled,
-    required this.accent,
-    required this.onTap,
-    this.iconFirst = true,
-  });
+class _SinglePageContent extends StatefulWidget {
+  final FlatPage flatPage;
+  const _SinglePageContent({required this.flatPage});
+
+  @override
+  State<_SinglePageContent> createState() => _SinglePageContentState();
+}
+
+class _SinglePageContentState extends State<_SinglePageContent>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
-    final color = enabled ? accent : AppColors.grey400;
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: iconFirst
-            ? [
-                Icon(icon, size: 18, color: color),
-                const SizedBox(width: 4),
-                Text(label,
-                    style: GoogleFonts.lato(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: color)),
-              ]
-            : [
-                Text(label,
-                    style: GoogleFonts.lato(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: color)),
-                const SizedBox(width: 4),
-                Icon(icon, size: 18, color: color),
-              ],
-      ),
+    super.build(context);
+    final fp = widget.flatPage;
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+      itemCount: fp.page.content.length,
+      itemBuilder: (context, index) {
+        final para = fp.page.content[index];
+        return ParagraphTile(
+          paragraph: para,
+          pageNum: fp.pageNum,
+          paragraphIndex: index,
+          sectionId: fp.section.id,
+          sectionTitle: fp.section.title,
+          subsectionId: fp.subsection?.id,
+          subsectionTitle: fp.subsection?.title,
+        );
+      },
     );
   }
 }
@@ -504,7 +343,7 @@ class _FontSizeBar extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            'Text size',
+            "Ingano y'Inyandiko",
             style: GoogleFonts.lato(
               fontSize: 13,
               color: AppColors.textSecondary,
@@ -512,10 +351,9 @@ class _FontSizeBar extends StatelessWidget {
           ),
           const Spacer(),
           _FontButton(
-            icon: Icons.remove,
-            onTap: provider.decreaseFontSize,
-            accent: accent,
-          ),
+              icon: Icons.remove,
+              onTap: provider.decreaseFontSize,
+              accent: accent),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Text(
@@ -528,10 +366,9 @@ class _FontSizeBar extends StatelessWidget {
             ),
           ),
           _FontButton(
-            icon: Icons.add,
-            onTap: provider.increaseFontSize,
-            accent: accent,
-          ),
+              icon: Icons.add,
+              onTap: provider.increaseFontSize,
+              accent: accent),
         ],
       ),
     );
@@ -543,11 +380,8 @@ class _FontButton extends StatelessWidget {
   final VoidCallback onTap;
   final Color accent;
 
-  const _FontButton({
-    required this.icon,
-    required this.onTap,
-    required this.accent,
-  });
+  const _FontButton(
+      {required this.icon, required this.onTap, required this.accent});
 
   @override
   Widget build(BuildContext context) {
@@ -570,7 +404,7 @@ class _FontButton extends StatelessWidget {
   }
 }
 
-// ── Legend ────────────────────────────────────────────────────────────────────
+// ── Legend bar (Indanguro yo Gusome) ─────────────────────────────────────────
 
 class _LegendBar extends StatefulWidget {
   @override
@@ -596,7 +430,7 @@ class _LegendBarState extends State<_LegendBar> {
                     Row(
                       children: [
                         Text(
-                          'Reading guide',
+                          'Indanguro yo Gusome',
                           style: GoogleFonts.lato(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -605,7 +439,7 @@ class _LegendBarState extends State<_LegendBar> {
                           ),
                         ),
                         const Spacer(),
-                        Icon(Icons.keyboard_arrow_up,
+                        const Icon(Icons.keyboard_arrow_up,
                             size: 16, color: AppColors.grey600),
                       ],
                     ),
@@ -616,34 +450,33 @@ class _LegendBarState extends State<_LegendBar> {
                       children: const [
                         _LegendItem(
                           color: AppColors.rubricColor,
-                          label: 'Instruction',
+                          label: 'Amabwiriza',
                           italic: true,
                         ),
                         _LegendItem(
                           color: AppColors.primary,
-                          label: 'Collect',
+                          label: 'Amasengesho',
                           bordered: true,
                         ),
                         _LegendItem(
                           color: AppColors.scriptureColor,
-                          label: 'Scripture',
-                          bordered: true,
+                          label: 'Ibyanditswe',
                         ),
                         _LegendItem(
                           color: AppColors.primaryLight,
-                          label: 'Response',
+                          label: 'Igisubizo',
                           bordered: true,
                         ),
                         _LegendItem(
                           color: AppColors.headingColor,
-                          label: 'Heading',
+                          label: 'Umutwe',
                           bold: true,
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'M. = Minister   C. = Congregation   All = Together',
+                      'Um. = Umupadri   It. = Itorero',
                       style: GoogleFonts.lato(
                         fontSize: 11,
                         color: AppColors.textHint,
@@ -654,14 +487,14 @@ class _LegendBarState extends State<_LegendBar> {
               : Row(
                   children: [
                     Text(
-                      'Reading guide',
+                      'Indanguro yo Gusome',
                       style: GoogleFonts.lato(
                         fontSize: 12,
                         color: AppColors.textSecondary,
                       ),
                     ),
                     const Spacer(),
-                    Icon(Icons.keyboard_arrow_down,
+                    const Icon(Icons.keyboard_arrow_down,
                         size: 16, color: AppColors.grey600),
                   ],
                 ),
@@ -713,61 +546,6 @@ class _LegendItem extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-// ── Scroll-to-top FAB ─────────────────────────────────────────────────────────
-
-class _ScrollTopFab extends StatefulWidget {
-  final ScrollController scrollController;
-  final Color accent;
-  final VoidCallback onTap;
-
-  const _ScrollTopFab({
-    required this.scrollController,
-    required this.accent,
-    required this.onTap,
-  });
-
-  @override
-  State<_ScrollTopFab> createState() => _ScrollTopFabState();
-}
-
-class _ScrollTopFabState extends State<_ScrollTopFab> {
-  bool _visible = false;
-
-  @override
-  void initState() {
-    super.initState();
-    widget.scrollController.addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    final shouldShow = widget.scrollController.offset > 400;
-    if (shouldShow != _visible) {
-      setState(() => _visible = shouldShow);
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.scrollController.removeListener(_onScroll);
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedScale(
-      scale: _visible ? 1 : 0,
-      duration: const Duration(milliseconds: 200),
-      child: FloatingActionButton.small(
-        onPressed: widget.onTap,
-        backgroundColor: widget.accent,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        child: const Icon(Icons.keyboard_arrow_up, size: 22),
-      ),
     );
   }
 }

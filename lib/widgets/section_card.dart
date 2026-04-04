@@ -121,20 +121,6 @@ class SectionCard extends StatelessWidget {
                         maxLines: 3,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (section.englishTitle.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          section.englishTitle,
-                          style: GoogleFonts.lato(
-                            fontSize: 12,
-                            color: AppColors.textHint,
-                            letterSpacing: 0.2,
-                            fontStyle: FontStyle.italic,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
                       const SizedBox(height: 14),
                       Wrap(
                         spacing: 8,
@@ -142,14 +128,14 @@ class SectionCard extends StatelessWidget {
                         children: [
                           _StatPill(
                             icon: Icons.layers_outlined,
-                            label: section.chapters.length == 1
-                                ? '1 prayer'
-                                : '${section.chapters.length} prayers',
+                            label: section.hasSubsections
+                                ? 'Imisegura ${section.subsections!.length}'
+                                : 'Amapaji ${section.pageCount}',
                             accent: accent,
                           ),
                           _StatPill(
                             icon: Icons.format_quote_rounded,
-                            label: '${section.totalNonEmptyVerses} verses',
+                            label: 'Paragarafe ${section.totalParagraphs}',
                             accent: accent,
                           ),
                         ],

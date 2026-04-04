@@ -18,7 +18,7 @@ const List<Color> _sectionAccents = [
   Color(0xFF1F6FA3),
 ];
 
-/// Full page/chapter browser with section grouping and go-to-page navigation.
+/// Full page browser with section grouping and go-to-page navigation.
 class ContentBrowserScreen extends StatefulWidget {
   const ContentBrowserScreen({super.key});
 
@@ -46,24 +46,21 @@ class _ContentBrowserScreenState extends State<ContentBrowserScreen> {
       );
     }
 
-    final allChapters = provider.allChapters;
-
-    // Filter by section if selected
+    final allPages = provider.allPages;
     final filtered = _selectedSectionId == null
-        ? allChapters
-        : allChapters
-            .where((gc) => gc.section.id == _selectedSectionId)
-            .toList();
+        ? allPages
+        : allPages.where((fp) => fp.section.id == _selectedSectionId).toList();
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: AppColors.white,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'All Prayers',
+              'Amapaji Yose',
               style: GoogleFonts.playfairDisplay(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -71,18 +68,15 @@ class _ContentBrowserScreenState extends State<ContentBrowserScreen> {
               ),
             ),
             Text(
-              '${provider.totalPages} prayers across ${book.sections.length} sections',
-              style: GoogleFonts.lato(
-                fontSize: 11,
-                color: AppColors.textHint,
-              ),
+              'Amapaji ${provider.totalPages} mu bice ${book.sections.length}',
+              style: GoogleFonts.lato(fontSize: 11, color: AppColors.textHint),
             ),
           ],
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.search, color: AppColors.primary),
-            tooltip: 'Go to prayer number',
+            tooltip: 'Jya ku paji',
             onPressed: () => _showGoToDialog(context, provider),
           ),
           const SizedBox(width: 4),
@@ -98,11 +92,11 @@ class _ContentBrowserScreenState extends State<ContentBrowserScreen> {
       ),
       body: _selectedSectionId == null
           ? _GroupedList(
-              allChapters: filtered,
+              allPages: filtered,
               sections: book.sections,
               scrollController: _scrollController,
             )
-          : _FlatList(chapters: filtered),
+          : _FlatList(pages: filtered),
     );
   }
 
@@ -114,7 +108,7 @@ class _ContentBrowserScreenState extends State<ContentBrowserScreen> {
         backgroundColor: AppColors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'Go to prayer',
+          'Jya ku Paji',
           style: GoogleFonts.playfairDisplay(
             fontSize: 17,
             fontWeight: FontWeight.w700,
@@ -135,30 +129,25 @@ class _ContentBrowserScreenState extends State<ContentBrowserScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child:
-                Text('Cancel', style: GoogleFonts.lato(color: AppColors.grey600)),
+            child: Text('Reka',
+                style: GoogleFonts.lato(color: AppColors.grey600)),
           ),
           TextButton(
             onPressed: () {
               final page = int.tryParse(controller.text.trim());
               Navigator.pop(ctx);
               if (page == null) return;
-              final gc = provider.chapterAtPage(page);
-              if (gc == null) return;
+              final fp = provider.pageAtNumber(page);
+              if (fp == null) return;
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => ChapterScreen(
-                    section: gc.section,
-                    chapter: gc.chapter,
-                    sectionIndex: gc.sectionIndex,
-                    globalPage: gc.globalPage,
-                  ),
+                  builder: (_) => PageReadingScreen(flatPage: fp),
                 ),
               );
             },
             child: Text(
-              'Go',
+              'Genda',
               style: GoogleFonts.lato(
                 color: AppColors.primary,
                 fontWeight: FontWeight.w700,
@@ -193,7 +182,7 @@ class _SectionFilterRow extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         children: [
           _Chip(
-            label: 'All',
+            label: 'Byose',
             selected: selectedId == null,
             color: AppColors.primary,
             onTap: () => onSelect(null),
@@ -204,13 +193,11 @@ class _SectionFilterRow extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: _Chip(
-                label: e.value.englishTitle.isNotEmpty
-                    ? e.value.englishTitle
-                    : e.value.title,
+                label: e.value.title,
                 selected: selectedId == e.value.id,
                 color: accent,
-                onTap: () => onSelect(
-                    selectedId == e.value.id ? null : e.value.id),
+                onTap: () =>
+                    onSelect(selectedId == e.value.id ? null : e.value.id),
               ),
             );
           }),
@@ -243,9 +230,7 @@ class _Chip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? color : AppColors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? color : AppColors.divider,
-          ),
+          border: Border.all(color: selected ? color : AppColors.divider),
         ),
         child: Text(
           label,
@@ -263,24 +248,23 @@ class _Chip extends StatelessWidget {
 // ── Grouped list (all sections) ───────────────────────────────────────────────
 
 class _GroupedList extends StatelessWidget {
-  final List<GlobalChapter> allChapters;
+  final List<FlatPage> allPages;
   final List<Section> sections;
   final ScrollController scrollController;
 
   const _GroupedList({
-    required this.allChapters,
+    required this.allPages,
     required this.sections,
     required this.scrollController,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Group by section
-    final grouped = <int, List<GlobalChapter>>{};
-    for (final gc in allChapters) {
-      grouped.putIfAbsent(gc.section.id, () => []).add(gc);
+    // Group by section id
+    final grouped = <int, List<FlatPage>>{};
+    for (final fp in allPages) {
+      grouped.putIfAbsent(fp.section.id, () => []).add(fp);
     }
-
     final sectionOrder = sections.map((s) => s.id).toList();
 
     return ListView.builder(
@@ -289,16 +273,15 @@ class _GroupedList extends StatelessWidget {
       itemCount: sectionOrder.length,
       itemBuilder: (context, sIdx) {
         final sectionId = sectionOrder[sIdx];
-        final gcs = grouped[sectionId];
-        if (gcs == null || gcs.isEmpty) return const SizedBox.shrink();
+        final fps = grouped[sectionId];
+        if (fps == null || fps.isEmpty) return const SizedBox.shrink();
 
-        final section = gcs.first.section;
+        final section = fps.first.section;
         final accent = _sectionAccents[sIdx % _sectionAccents.length];
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Section header
             Padding(
               padding: const EdgeInsets.fromLTRB(0, 8, 0, 10),
               child: Row(
@@ -330,7 +313,7 @@ class _GroupedList extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      '${gcs.length}',
+                      '${fps.length}',
                       style: GoogleFonts.lato(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -341,10 +324,9 @@ class _GroupedList extends StatelessWidget {
                 ],
               ),
             ),
-            // Chapter tiles
-            ...gcs.map((gc) => Padding(
+            ...fps.map((fp) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: _BrowserTile(gc: gc, accent: accent),
+                  child: _BrowserTile(fp: fp, accent: accent),
                 )),
             const SizedBox(height: 8),
           ],
@@ -354,23 +336,24 @@ class _GroupedList extends StatelessWidget {
   }
 }
 
-// ── Flat list (single section) ────────────────────────────────────────────────
+// ── Flat list (single section selected) ──────────────────────────────────────
 
 class _FlatList extends StatelessWidget {
-  final List<GlobalChapter> chapters;
+  final List<FlatPage> pages;
 
-  const _FlatList({required this.chapters});
+  const _FlatList({required this.pages});
 
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-      itemCount: chapters.length,
+      itemCount: pages.length,
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
-        final gc = chapters[index];
-        final accent = _sectionAccents[gc.sectionIndex % _sectionAccents.length];
-        return _BrowserTile(gc: gc, accent: accent);
+        final fp = pages[index];
+        final accent =
+            _sectionAccents[fp.sectionIndex % _sectionAccents.length];
+        return _BrowserTile(fp: fp, accent: accent);
       },
     );
   }
@@ -378,28 +361,31 @@ class _FlatList extends StatelessWidget {
 
 // ── Browser tile ──────────────────────────────────────────────────────────────
 
+String _flatPageTitle(FlatPage fp) {
+  for (final p in fp.page.content) {
+    if (p.isHeading) return p.text;
+  }
+  if (fp.subsection != null && fp.subsection!.title.isNotEmpty) {
+    return fp.subsection!.title;
+  }
+  return fp.section.title;
+}
+
 class _BrowserTile extends StatelessWidget {
-  final GlobalChapter gc;
+  final FlatPage fp;
   final Color accent;
 
-  const _BrowserTile({required this.gc, required this.accent});
+  const _BrowserTile({required this.fp, required this.accent});
 
   @override
   Widget build(BuildContext context) {
-    final title = gc.chapter.title.isNotEmpty
-        ? gc.chapter.title
-        : gc.section.title;
+    final title = _flatPageTitle(fp);
 
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => ChapterScreen(
-            section: gc.section,
-            chapter: gc.chapter,
-            sectionIndex: gc.sectionIndex,
-            globalPage: gc.globalPage,
-          ),
+          builder: (_) => PageReadingScreen(flatPage: fp),
         ),
       ),
       child: Container(
@@ -421,7 +407,7 @@ class _BrowserTile extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: Text(
-                '${gc.globalPage}',
+                '${fp.pageNum}',
                 style: GoogleFonts.lato(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -446,7 +432,7 @@ class _BrowserTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${gc.chapter.nonEmptyVerseCount} verses',
+                    'Paragarafe ${fp.page.nonEmptyCount}',
                     style: GoogleFonts.lato(
                       fontSize: 11,
                       color: AppColors.textHint,

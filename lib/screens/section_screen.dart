@@ -32,24 +32,6 @@ class SectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.read<PrayerBookProvider>();
-    final hasManyChapters = section.chapters.length > 1;
-
-    // Pre-compute global pages for this section's chapters
-    final chapterPages = <int, int>{};
-    for (final gc in provider.allChapters) {
-      if (gc.section.id == section.id) {
-        chapterPages[gc.chapter.id] = gc.globalPage;
-      }
-    }
-
-    final firstPage = chapterPages.values.isEmpty
-        ? 0
-        : chapterPages.values.reduce((a, b) => a < b ? a : b);
-    final lastPage = chapterPages.values.isEmpty
-        ? 0
-        : chapterPages.values.reduce((a, b) => a > b ? a : b);
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
@@ -89,23 +71,10 @@ class SectionScreen extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      _accent,
-                      _accent.withValues(alpha: 0.75),
-                    ],
+                    colors: [_accent, _accent.withValues(alpha: 0.75)],
                   ),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(72, 60, 20, 0),
-                  child: Text(
-                    section.englishTitle,
-                    style: GoogleFonts.lato(
-                      fontSize: 13,
-                      color: Colors.white.withValues(alpha: 0.75),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
+                child: const SizedBox.shrink(),
               ),
             ),
           ),
@@ -119,173 +88,105 @@ class SectionScreen extends StatelessWidget {
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  _StatChip(
-                    label: '${section.chapters.length} prayers',
-                    icon: Icons.layers_outlined,
-                    accent: _accent,
-                  ),
-                  _StatChip(
-                    label: '${section.totalNonEmptyVerses} verses',
-                    icon: Icons.format_quote,
-                    accent: _accent,
-                  ),
-                  if (firstPage > 0)
+                  if (section.hasSubsections)
                     _StatChip(
-                      label: firstPage == lastPage
-                          ? 'Prayer $firstPage'
-                          : 'Prayers $firstPage–$lastPage',
+                      label: 'Imisegura ${section.subsections!.length}',
+                      icon: Icons.layers_outlined,
+                      accent: _accent,
+                    )
+                  else
+                    _StatChip(
+                      label: 'Amapaji ${section.pageCount}',
                       icon: Icons.auto_stories_outlined,
                       accent: _accent,
                     ),
+                  _StatChip(
+                    label: 'Paragarafe ${section.totalParagraphs}',
+                    icon: Icons.format_quote,
+                    accent: _accent,
+                  ),
+                  _StatChip(
+                    label: 'Amapaji ${section.startPage} kugeza ${section.endPage}',
+                    icon: Icons.bookmark_border,
+                    accent: _accent,
+                  ),
                 ],
               ),
             ),
           ),
           const SliverToBoxAdapter(child: Divider(height: 1)),
 
-          // ── If single chapter → jump straight to reading ────────────────────
-          if (!hasManyChapters)
-            SliverToBoxAdapter(
-              child: _SingleChapterBanner(
-                section: section,
-                sectionIndex: sectionIndex,
-                accent: _accent,
-                globalPage: chapterPages[section.chapters.first.id] ?? 0,
-              ),
+          // ── Content ─────────────────────────────────────────────────────────
+          if (section.hasSubsections)
+            _SubsectionList(
+              section: section,
+              sectionIndex: sectionIndex,
+              accent: _accent,
             )
-          else ...[
-            // ── Chapter list header ─────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-                child: Text(
-                  'Prayers',
-                  style: GoogleFonts.lato(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textHint,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
+          else
+            _PageList(
+              section: section,
+              sectionIndex: sectionIndex,
+              accent: _accent,
             ),
-
-            // ── Chapter list ────────────────────────────────────────────────
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-              sliver: AnimationLimiter(
-                child: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final chapter = section.chapters[index];
-                      final gPage = chapterPages[chapter.id] ?? 0;
-                      return AnimationConfiguration.staggeredList(
-                        position: index,
-                        duration: const Duration(milliseconds: 400),
-                        child: SlideAnimation(
-                          verticalOffset: 24,
-                          child: FadeInAnimation(
-                            child: _ChapterListTile(
-                              chapter: chapter,
-                              index: index,
-                              accent: _accent,
-                              globalPage: gPage,
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ChapterScreen(
-                                    section: section,
-                                    chapter: chapter,
-                                    sectionIndex: sectionIndex,
-                                    globalPage: gPage,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                    childCount: section.chapters.length,
-                  ),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
 }
 
-// ── Single-chapter banner (tap to read) ──────────────────────────────────────
+// ── Subsection list (for sections 6-8) ───────────────────────────────────────
 
-class _SingleChapterBanner extends StatelessWidget {
+class _SubsectionList extends StatelessWidget {
   final Section section;
   final int sectionIndex;
   final Color accent;
-  final int globalPage;
 
-  const _SingleChapterBanner({
+  const _SubsectionList({
     required this.section,
     required this.sectionIndex,
     required this.accent,
-    required this.globalPage,
   });
 
   @override
   Widget build(BuildContext context) {
-    final chapter = section.chapters.first;
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: GestureDetector(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ChapterScreen(
-              section: section,
-              chapter: chapter,
-              sectionIndex: sectionIndex,
-              globalPage: globalPage,
-            ),
-          ),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: accent.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: accent.withValues(alpha: 0.25)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.auto_stories_outlined, color: accent, size: 28),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Read this section',
-                      style: GoogleFonts.lato(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: accent,
-                      ),
+    final subsections = section.subsections!;
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      sliver: AnimationLimiter(
+        child: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final sub = subsections[index];
+              return AnimationConfiguration.staggeredList(
+                position: index,
+                duration: const Duration(milliseconds: 400),
+                child: SlideAnimation(
+                  verticalOffset: 24,
+                  child: FadeInAnimation(
+                    child: _SubsectionTile(
+                      subsection: sub,
+                      index: index,
+                      accent: accent,
+                      onTap: () {
+                        final provider =
+                            context.read<PrayerBookProvider>();
+                        // Open first page of this subsection
+                        final fp = provider.pageAtNumber(sub.startPage);
+                        if (fp == null) return;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PageReadingScreen(flatPage: fp),
+                          ),
+                        );
+                      },
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${chapter.nonEmptyVerseCount} verses',
-                      style: GoogleFonts.lato(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-              Icon(Icons.chevron_right, color: accent),
-            ],
+              );
+            },
+            childCount: subsections.length,
           ),
         ),
       ),
@@ -293,20 +194,16 @@ class _SingleChapterBanner extends StatelessWidget {
   }
 }
 
-// ── Chapter list tile ─────────────────────────────────────────────────────────
-
-class _ChapterListTile extends StatelessWidget {
-  final Chapter chapter;
+class _SubsectionTile extends StatelessWidget {
+  final Subsection subsection;
   final int index;
   final Color accent;
-  final int globalPage;
   final VoidCallback onTap;
 
-  const _ChapterListTile({
-    required this.chapter,
+  const _SubsectionTile({
+    required this.subsection,
     required this.index,
     required this.accent,
-    required this.globalPage,
     required this.onTap,
   });
 
@@ -348,9 +245,7 @@ class _ChapterListTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      chapter.title.isEmpty
-                          ? 'Prayer ${index + 1}'
-                          : chapter.title,
+                      subsection.title,
                       style: GoogleFonts.lato(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -359,40 +254,24 @@ class _ChapterListTile extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (chapter.subtitle != null &&
-                        chapter.subtitle!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        chapter.subtitle!,
-                        style: GoogleFonts.lato(
-                          fontSize: 12,
-                          color: AppColors.textHint,
-                          fontStyle: FontStyle.italic,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
                     const SizedBox(height: 4),
                     Row(
                       children: [
                         Text(
-                          '${chapter.nonEmptyVerseCount} verses',
+                          'Paragarafe ${subsection.totalParagraphs}',
                           style: GoogleFonts.lato(
                             fontSize: 11,
                             color: AppColors.textHint,
                           ),
                         ),
-                        if (globalPage > 0) ...[
-                          Text(
-                            '  ·  Prayer $globalPage',
-                            style: GoogleFonts.lato(
-                              fontSize: 11,
-                              color: accent.withValues(alpha: 0.7),
-                              fontWeight: FontWeight.w600,
-                            ),
+                        Text(
+                          '  ·  Amapaji ${subsection.startPage}–${subsection.endPage}',
+                          style: GoogleFonts.lato(
+                            fontSize: 11,
+                            color: accent.withValues(alpha: 0.7),
+                            fontWeight: FontWeight.w600,
                           ),
-                        ],
+                        ),
                       ],
                     ),
                   ],
@@ -410,6 +289,247 @@ class _ChapterListTile extends StatelessWidget {
     );
   }
 }
+
+// ── Page list (for sections 1-5) ─────────────────────────────────────────────
+
+class _PageList extends StatelessWidget {
+  final Section section;
+  final int sectionIndex;
+  final Color accent;
+
+  const _PageList({
+    required this.section,
+    required this.sectionIndex,
+    required this.accent,
+  });
+
+  String _pageTitle(PageContent page) {
+    for (final p in page.content) {
+      if (p.isHeading) return p.text;
+    }
+    // Fall back to first non-empty, non-rubric paragraph text (truncated)
+    for (final p in page.content) {
+      if (!p.isEmpty && !p.isRubric) return p.text;
+    }
+    return 'Page ${page.page}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = section.pages ?? [];
+    if (pages.length == 1) {
+      return SliverToBoxAdapter(
+        child: _SinglePageBanner(
+          section: section,
+          sectionIndex: sectionIndex,
+          page: pages.first,
+          accent: accent,
+        ),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      sliver: AnimationLimiter(
+        child: SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final page = pages[index];
+              return AnimationConfiguration.staggeredList(
+                position: index,
+                duration: const Duration(milliseconds: 400),
+                child: SlideAnimation(
+                  verticalOffset: 24,
+                  child: FadeInAnimation(
+                    child: _PageListTile(
+                      page: page,
+                      index: index,
+                      accent: accent,
+                      title: _pageTitle(page),
+                      onTap: () {
+                        final provider =
+                            context.read<PrayerBookProvider>();
+                        final fp = provider.pageAtNumber(page.page);
+                        if (fp == null) return;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => PageReadingScreen(flatPage: fp),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              );
+            },
+            childCount: pages.length,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SinglePageBanner extends StatelessWidget {
+  final Section section;
+  final int sectionIndex;
+  final PageContent page;
+  final Color accent;
+
+  const _SinglePageBanner({
+    required this.section,
+    required this.sectionIndex,
+    required this.page,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: GestureDetector(
+        onTap: () {
+          final provider = context.read<PrayerBookProvider>();
+          final fp = provider.pageAtNumber(page.page);
+          if (fp == null) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PageReadingScreen(flatPage: fp),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: accent.withValues(alpha: 0.25)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.auto_stories_outlined, color: accent, size: 28),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Soma iki gice',
+                      style: GoogleFonts.lato(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: accent,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Paragarafe ${page.nonEmptyCount}',
+                      style: GoogleFonts.lato(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: accent),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PageListTile extends StatelessWidget {
+  final PageContent page;
+  final int index;
+  final Color accent;
+  final String title;
+  final VoidCallback onTap;
+
+  const _PageListTile({
+    required this.page,
+    required this.index,
+    required this.accent,
+    required this.title,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.divider),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${page.page}',
+                  style: GoogleFonts.lato(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: accent,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.lato(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Paragarafe ${page.nonEmptyCount}',
+                      style: GoogleFonts.lato(
+                        fontSize: 11,
+                        color: AppColors.textHint,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: accent.withValues(alpha: 0.5),
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Stat chip ─────────────────────────────────────────────────────────────────
 
 class _StatChip extends StatelessWidget {
   final String label;

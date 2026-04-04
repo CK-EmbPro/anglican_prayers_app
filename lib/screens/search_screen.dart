@@ -7,14 +7,14 @@ import '../utils/app_colors.dart';
 import 'chapter_screen.dart';
 
 const _typeFilters = [
-  ('All types', null),
-  ('Prayer', 'prayer'),
-  ('Collect', 'collect'),
-  ('Response', 'response'),
-  ('Scripture', 'scripture'),
-  ('Creed', 'creed'),
-  ('Canticle', 'canticle'),
-  ('Rubric', 'rubric'),
+  ('Ubwoko bwose', null),
+  ('Gusenga', 'prayer'),
+  ('Amasengesho', 'collect'),
+  ('Igisubizo', 'response'),
+  ('Ibyanditswe', 'scripture'),
+  ("Imvugo y'Ukwizera", 'creed'),
+  ('Indirimbo', 'canticle'),
+  ('Amabwiriza', 'rubric'),
 ];
 
 class SearchScreen extends StatefulWidget {
@@ -49,7 +49,7 @@ class _SearchScreenState extends State<SearchScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text(
-          'Search',
+          'Shakisha',
           style: GoogleFonts.playfairDisplay(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -73,12 +73,9 @@ class _SearchScreenState extends State<SearchScreen> {
                     color: AppColors.textPrimary,
                   ),
                   decoration: InputDecoration(
-                    hintText: 'Search prayers, verses, articles...',
-                    prefixIcon: const Icon(
-                      Icons.search,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
+                    hintText: 'Shakisha imisengero, amasengesho...',
+                    prefixIcon: const Icon(Icons.search,
+                        color: AppColors.primary, size: 20),
                     suffixIcon: _controller.text.isNotEmpty
                         ? GestureDetector(
                             onTap: () {
@@ -86,11 +83,8 @@ class _SearchScreenState extends State<SearchScreen> {
                               provider.clearSearch();
                               _focusNode.requestFocus();
                             },
-                            child: const Icon(
-                              Icons.close,
-                              color: AppColors.grey400,
-                              size: 18,
-                            ),
+                            child: const Icon(Icons.close,
+                                color: AppColors.grey400, size: 18),
                           )
                         : null,
                   ),
@@ -160,8 +154,7 @@ class _FilterChip extends StatelessWidget {
           color: selected ? AppColors.primary : AppColors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.divider,
-          ),
+              color: selected ? AppColors.primary : AppColors.divider),
         ),
         child: Text(
           label,
@@ -196,15 +189,11 @@ class _EmptyState extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.search,
-              size: 36,
-              color: AppColors.primary,
-            ),
+            child: const Icon(Icons.search, size: 36, color: AppColors.primary),
           ),
           const SizedBox(height: 20),
           Text(
-            'Search the Prayer Book',
+            "Shakisha mu Gitabo cy'Amasengesho",
             style: GoogleFonts.playfairDisplay(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -213,7 +202,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Find prayers, collects, articles,\nscripture passages and more.',
+            'Shaka imisengero, amasengesho,\nibyanditswe byera n\'ibindi.',
             style: GoogleFonts.lato(
               fontSize: 14,
               color: AppColors.textHint,
@@ -235,7 +224,6 @@ class _EmptyState extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 32),
-          // Discover random verse
           _DiscoverCard(provider: provider),
         ],
       ),
@@ -251,10 +239,7 @@ class _SuggestionChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        final provider = context.read<PrayerBookProvider>();
-        provider.search(label);
-      },
+      onTap: () => context.read<PrayerBookProvider>().search(label),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
@@ -290,7 +275,16 @@ class _DiscoverCardState extends State<_DiscoverCard> {
   SearchResult? _discovered;
 
   void _discover() {
-    setState(() => _discovered = widget.provider.randomVerse());
+    setState(() => _discovered = widget.provider.randomParagraph());
+  }
+
+  void _navigateTo(BuildContext context, SearchResult result) {
+    final fp = widget.provider.pageAtNumber(result.pageNum);
+    if (fp == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => PageReadingScreen(flatPage: fp)),
+    );
   }
 
   @override
@@ -303,7 +297,7 @@ class _DiscoverCardState extends State<_DiscoverCard> {
           Row(
             children: [
               Text(
-                'Discover',
+                'Vumbura',
                 style: GoogleFonts.lato(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -316,10 +310,11 @@ class _DiscoverCardState extends State<_DiscoverCard> {
                 onTap: _discover,
                 child: Row(
                   children: [
-                    const Icon(Icons.shuffle, size: 14, color: AppColors.primary),
+                    const Icon(Icons.shuffle,
+                        size: 14, color: AppColors.primary),
                     const SizedBox(width: 4),
                     Text(
-                      'Random verse',
+                      "Paragarafe y'Inzirakarengane",
                       style: GoogleFonts.lato(
                         fontSize: 12,
                         color: AppColors.primary,
@@ -346,7 +341,7 @@ class _DiscoverCardState extends State<_DiscoverCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${_discovered!.sectionTitle}  /  ${_discovered!.chapterTitle}',
+                      _discovered!.breadcrumb,
                       style: GoogleFonts.lato(
                         fontSize: 11,
                         color: AppColors.primary,
@@ -357,7 +352,7 @@ class _DiscoverCardState extends State<_DiscoverCard> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _discovered!.verseText,
+                      _discovered!.paragraphText,
                       maxLines: 4,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.lato(
@@ -369,10 +364,10 @@ class _DiscoverCardState extends State<_DiscoverCard> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        _TypeBadge(type: _discovered!.verseType),
+                        _TypeBadge(type: _discovered!.paragraphType),
                         const Spacer(),
                         Text(
-                          'Prayer ${_discovered!.globalPage}',
+                          'Paji ${_discovered!.pageNum}',
                           style: GoogleFonts.lato(
                             fontSize: 10,
                             color: AppColors.textHint,
@@ -395,7 +390,6 @@ class _DiscoverCardState extends State<_DiscoverCard> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: AppColors.primary.withValues(alpha: 0.15),
-                    style: BorderStyle.solid,
                   ),
                 ),
                 child: Column(
@@ -405,7 +399,7 @@ class _DiscoverCardState extends State<_DiscoverCard> {
                         color: AppColors.primary.withValues(alpha: 0.5)),
                     const SizedBox(height: 8),
                     Text(
-                      'Tap to discover a random verse',
+                      'Kanda kugira ngo uvumbure imigabane',
                       style: GoogleFonts.lato(
                         fontSize: 13,
                         color: AppColors.textHint,
@@ -416,22 +410,6 @@ class _DiscoverCardState extends State<_DiscoverCard> {
               ),
             ),
         ],
-      ),
-    );
-  }
-
-  void _navigateTo(BuildContext context, SearchResult result) {
-    final gc = widget.provider.chapterAtPage(result.globalPage);
-    if (gc == null) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChapterScreen(
-          section: gc.section,
-          chapter: gc.chapter,
-          sectionIndex: gc.sectionIndex,
-          globalPage: gc.globalPage,
-        ),
       ),
     );
   }
@@ -455,8 +433,8 @@ class _NoResults extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             query.isNotEmpty
-                ? 'No results for "$query"'
-                : 'No results for selected filter',
+                ? 'Nta bisubizo bya "$query"'
+                : 'Nta bisubizo by\'ubwoko bwarenguye',
             style: GoogleFonts.lato(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -467,12 +445,9 @@ class _NoResults extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             hasFilter
-                ? 'Try adjusting the type filter above'
-                : 'Try a different search term',
-            style: GoogleFonts.lato(
-              fontSize: 13,
-              color: AppColors.textHint,
-            ),
+                ? 'Gerageza guhindura ubwoko haruguru'
+                : "Gerageza amagambo y'indi mvugo",
+            style: GoogleFonts.lato(fontSize: 13, color: AppColors.textHint),
           ),
         ],
       ),
@@ -501,7 +476,7 @@ class _ResultsList extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
           child: Text(
-            '${results.length}${results.length == 200 ? '+' : ''} results',
+            'Ibisubizo: ${results.length}${results.length == 200 ? '+' : ''}',
             style: GoogleFonts.lato(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -514,15 +489,12 @@ class _ResultsList extends StatelessWidget {
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
             itemCount: results.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              final result = results[index];
-              return _ResultCard(
-                result: result,
-                query: query,
-                provider: provider,
-              );
-            },
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, index) => _ResultCard(
+              result: results[index],
+              query: query,
+              provider: provider,
+            ),
           ),
         ),
       ],
@@ -541,12 +513,37 @@ class _ResultCard extends StatelessWidget {
     required this.provider,
   });
 
+  String get _favKey => '${result.pageNum}_${result.paragraphIndex}';
+
+  void _navigateTo(BuildContext context) {
+    final fp = provider.pageAtNumber(result.pageNum);
+    if (fp == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => PageReadingScreen(flatPage: fp)),
+    );
+  }
+
+  void _toggleFav() {
+    provider.toggleFavourite(
+      favKey: _favKey,
+      pageNum: result.pageNum,
+      paragraphIndex: result.paragraphIndex,
+      paragraphText: result.paragraphText,
+      paragraphType: result.paragraphType,
+      sectionId: result.sectionId,
+      sectionTitle: result.sectionTitle,
+      subsectionId: result.subsectionId,
+      subsectionTitle: result.subsectionTitle,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isFav = provider.isFavourite(result.verseId);
+    final isFav = provider.isFavourite(_favKey);
 
     return GestureDetector(
-      onTap: () => _navigateToChapter(context),
+      onTap: () => _navigateTo(context),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
@@ -557,14 +554,11 @@ class _ResultCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Breadcrumb
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    result.chapterTitle.isNotEmpty
-                        ? '${result.sectionTitle}  /  ${result.chapterTitle}'
-                        : result.sectionTitle,
+                    result.breadcrumb,
                     style: GoogleFonts.lato(
                       fontSize: 11,
                       color: AppColors.primary,
@@ -576,7 +570,7 @@ class _ResultCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 GestureDetector(
-                  onTap: () => _toggleFav(context),
+                  onTap: _toggleFav,
                   child: Icon(
                     isFav ? Icons.bookmark : Icons.bookmark_border,
                     size: 16,
@@ -586,84 +580,24 @@ class _ResultCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            // Highlighted text
-            _HighlightedText(text: result.verseText, query: query),
+            _HighlightedText(text: result.paragraphText, query: query),
             const SizedBox(height: 8),
-            // Footer row
             Row(
               children: [
-                _TypeBadge(type: result.verseType),
+                _TypeBadge(type: result.paragraphType),
                 const Spacer(),
-                if (result.globalPage > 0)
-                  Text(
-                    'Prayer ${result.globalPage}',
-                    style: GoogleFonts.lato(
-                      fontSize: 10,
-                      color: AppColors.textHint,
-                    ),
+                Text(
+                  'Paji ${result.pageNum}',
+                  style: GoogleFonts.lato(
+                    fontSize: 10,
+                    color: AppColors.textHint,
                   ),
+                ),
               ],
             ),
           ],
         ),
       ),
-    );
-  }
-
-  void _navigateToChapter(BuildContext context) {
-    final gc = provider.chapterAtPage(result.globalPage);
-    if (gc != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ChapterScreen(
-            section: gc.section,
-            chapter: gc.chapter,
-            sectionIndex: gc.sectionIndex,
-            globalPage: gc.globalPage,
-          ),
-        ),
-      );
-      return;
-    }
-
-    // Fallback: find by IDs
-    final book = provider.book;
-    if (book == null) return;
-    for (int i = 0; i < book.sections.length; i++) {
-      final s = book.sections[i];
-      if (s.id == result.sectionId) {
-        for (final c in s.chapters) {
-          if (c.id == result.chapterId) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ChapterScreen(
-                  section: s,
-                  chapter: c,
-                  sectionIndex: i,
-                  globalPage: result.globalPage,
-                ),
-              ),
-            );
-            return;
-          }
-        }
-      }
-    }
-  }
-
-  void _toggleFav(BuildContext context) {
-    provider.toggleFavourite(
-      verseId: result.verseId,
-      verseText: result.verseText,
-      verseType: result.verseType,
-      sectionId: result.sectionId,
-      sectionTitle: result.sectionTitle,
-      sectionSlug: '',
-      chapterId: result.chapterId,
-      chapterTitle: result.chapterTitle,
-      globalPage: result.globalPage,
     );
   }
 }
@@ -684,10 +618,7 @@ class _HighlightedText extends StatelessWidget {
         maxLines: 3,
         overflow: TextOverflow.ellipsis,
         style: GoogleFonts.lato(
-          fontSize: 14,
-          height: 1.6,
-          color: AppColors.textPrimary,
-        ),
+            fontSize: 14, height: 1.6, color: AppColors.textPrimary),
       );
     }
 
@@ -701,10 +632,7 @@ class _HighlightedText extends StatelessWidget {
         maxLines: 3,
         overflow: TextOverflow.ellipsis,
         style: GoogleFonts.lato(
-          fontSize: 14,
-          height: 1.6,
-          color: AppColors.textPrimary,
-        ),
+            fontSize: 14, height: 1.6, color: AppColors.textPrimary),
       );
     }
 
@@ -730,10 +658,7 @@ class _HighlightedText extends StatelessWidget {
       maxLines: 3,
       overflow: TextOverflow.ellipsis,
       style: GoogleFonts.lato(
-        fontSize: 14,
-        height: 1.6,
-        color: AppColors.textPrimary,
-      ),
+          fontSize: 14, height: 1.6, color: AppColors.textPrimary),
     );
   }
 }

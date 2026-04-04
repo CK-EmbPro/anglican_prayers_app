@@ -5,53 +5,57 @@ import '../models/prayer_book_model.dart';
 import '../providers/prayer_book_provider.dart';
 import '../utils/app_colors.dart';
 
-class VerseTile extends StatelessWidget {
-  final Verse verse;
+class ParagraphTile extends StatelessWidget {
+  final Paragraph paragraph;
+  final int pageNum;
+  final int paragraphIndex;
   final int sectionId;
   final String sectionTitle;
-  final String sectionSlug;
-  final int chapterId;
-  final String chapterTitle;
-  final int globalPage;
+  final String? subsectionId;
+  final String? subsectionTitle;
   final double? fontSizeOverride;
 
-  const VerseTile({
+  const ParagraphTile({
     super.key,
-    required this.verse,
+    required this.paragraph,
+    required this.pageNum,
+    required this.paragraphIndex,
     required this.sectionId,
     required this.sectionTitle,
-    required this.sectionSlug,
-    required this.chapterId,
-    required this.chapterTitle,
-    required this.globalPage,
+    this.subsectionId,
+    this.subsectionTitle,
     this.fontSizeOverride,
   });
 
+  String get _favKey => '${pageNum}_$paragraphIndex';
+
   @override
   Widget build(BuildContext context) {
-    if (verse.isEmpty) return const SizedBox(height: 10);
+    if (paragraph.isEmpty) return const SizedBox(height: 10);
 
     final provider = context.watch<PrayerBookProvider>();
-    final isFav = provider.isFavourite(verse.id);
+    final isFav = provider.isFavourite(_favKey);
     final fontSize = fontSizeOverride ?? provider.fontSize;
 
-    if (verse.isHeading) return _HeadingTile(text: verse.text);
-    if (verse.isRubric) return _RubricTile(text: verse.text, fontSize: fontSize);
+    if (paragraph.isHeading) return _HeadingTile(text: paragraph.text);
+    if (paragraph.isRubric) {
+      return _RubricTile(text: paragraph.text, fontSize: fontSize);
+    }
 
     return _ContentTile(
-      verse: verse,
+      paragraph: paragraph,
       isFav: isFav,
       fontSize: fontSize,
       onFavToggle: () => provider.toggleFavourite(
-        verseId: verse.id,
-        verseText: verse.text,
-        verseType: verse.type,
+        favKey: _favKey,
+        pageNum: pageNum,
+        paragraphIndex: paragraphIndex,
+        paragraphText: paragraph.text,
+        paragraphType: paragraph.type,
         sectionId: sectionId,
         sectionTitle: sectionTitle,
-        sectionSlug: sectionSlug,
-        chapterId: chapterId,
-        chapterTitle: chapterTitle,
-        globalPage: globalPage,
+        subsectionId: subsectionId,
+        subsectionTitle: subsectionTitle,
       ),
     );
   }
@@ -61,7 +65,6 @@ class VerseTile extends StatelessWidget {
 
 class _HeadingTile extends StatelessWidget {
   final String text;
-
   const _HeadingTile({required this.text});
 
   @override
@@ -81,12 +84,11 @@ class _HeadingTile extends StatelessWidget {
   }
 }
 
-// ── Rubric / Instruction ──────────────────────────────────────────────────────
+// ── Rubric / Instruction (Amabwiriza) ─────────────────────────────────────────
 
 class _RubricTile extends StatelessWidget {
   final String text;
   final double fontSize;
-
   const _RubricTile({required this.text, required this.fontSize});
 
   @override
@@ -106,52 +108,50 @@ class _RubricTile extends StatelessWidget {
   }
 }
 
-// ── Content tile (prayer, response, collect, scripture, creed) ────────────────
+// ── Content tile ──────────────────────────────────────────────────────────────
 
 class _ContentTile extends StatelessWidget {
-  final Verse verse;
+  final Paragraph paragraph;
   final bool isFav;
   final double fontSize;
   final VoidCallback onFavToggle;
 
   const _ContentTile({
-    required this.verse,
+    required this.paragraph,
     required this.isFav,
     required this.fontSize,
     required this.onFavToggle,
   });
 
+  // Scripture: no bg box — just green text color. Only collect/response/creed/canticle get containers.
   Color get _bgColor {
-    if (verse.isCollect) return AppColors.collectBg;
-    if (verse.isResponse) return AppColors.responseBg;
-    if (verse.isScripture) return const Color(0xFFF0F7EE);
-    if (verse.isCreed || verse.isCanticle) return const Color(0xFFF5F0FB);
+    if (paragraph.isCollect) return AppColors.collectBg;
+    if (paragraph.isResponse) return AppColors.responseBg;
+    if (paragraph.isCreed || paragraph.isCanticle) return const Color(0xFFF5F0FB);
     return Colors.transparent;
   }
 
   Color get _leftBorderColor {
-    if (verse.isCollect) return AppColors.primary;
-    if (verse.isResponse) return AppColors.primaryLight;
-    if (verse.isScripture) return AppColors.scriptureColor;
-    if (verse.isCreed || verse.isCanticle) return const Color(0xFF8A6BBB);
+    if (paragraph.isCollect) return AppColors.primary;
+    if (paragraph.isResponse) return AppColors.primaryLight;
+    if (paragraph.isCreed || paragraph.isCanticle) return const Color(0xFF8A6BBB);
     return Colors.transparent;
   }
 
+  // "All" speaker is not labeled — only minister (Um.) and congregation (It.)
   String get _speakerLabel {
-    switch (verse.speaker) {
+    switch (paragraph.speaker) {
       case 'minister':
-        return 'M.';
+        return 'Um.';
       case 'congregation':
-        return 'C.';
-      case 'all':
-        return 'All';
+        return 'It.';
       default:
         return '';
     }
   }
 
   Color get _speakerColor {
-    switch (verse.speaker) {
+    switch (paragraph.speaker) {
       case 'minister':
         return AppColors.primary;
       case 'congregation':
@@ -188,14 +188,15 @@ class _ContentTile extends StatelessWidget {
           ],
           Expanded(
             child: Text(
-              verse.text,
+              paragraph.text,
               style: GoogleFonts.lato(
                 fontSize: fontSize,
                 height: 1.75,
-                color: verse.isScripture
+                // Scripture keeps its green text color; no container box
+                color: paragraph.isScripture
                     ? AppColors.scriptureColor
                     : AppColors.textPrimary,
-                fontWeight: verse.isResponse
+                fontWeight: paragraph.isResponse
                     ? FontWeight.w600
                     : FontWeight.w400,
               ),
@@ -229,9 +230,7 @@ class _ContentTile extends StatelessWidget {
           color: _bgColor,
           borderRadius: BorderRadius.circular(8),
           border: hasBorder
-              ? Border(
-                  left: BorderSide(color: _leftBorderColor, width: 3),
-                )
+              ? Border(left: BorderSide(color: _leftBorderColor, width: 3))
               : null,
         ),
         child: content,

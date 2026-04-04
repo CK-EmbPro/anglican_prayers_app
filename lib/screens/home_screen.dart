@@ -55,28 +55,28 @@ class _HomeScreenState extends State<HomeScreen> {
                 _NavItem(
                   icon: Icons.menu_book_outlined,
                   activeIcon: Icons.menu_book,
-                  label: 'Library',
+                  label: "Ibice by'ingenzi",
                   selected: _navIndex == 0,
                   onTap: () => setState(() => _navIndex = 0),
                 ),
                 _NavItem(
                   icon: Icons.auto_stories_outlined,
                   activeIcon: Icons.auto_stories,
-                  label: 'Browse',
+                  label: 'Paji zose',
                   selected: _navIndex == 1,
                   onTap: () => setState(() => _navIndex = 1),
                 ),
                 _NavItem(
                   icon: Icons.search_outlined,
                   activeIcon: Icons.search,
-                  label: 'Search',
+                  label: 'Ishakiro',
                   selected: _navIndex == 2,
                   onTap: () => setState(() => _navIndex = 2),
                 ),
                 _NavItem(
                   icon: Icons.bookmark_border,
                   activeIcon: Icons.bookmark,
-                  label: 'Saved',
+                  label: 'Ibyabitswe',
                   selected: _navIndex == 3,
                   onTap: () => setState(() => _navIndex = 3),
                 ),
@@ -192,17 +192,17 @@ class _LibraryTab extends StatelessWidget {
                           children: [
                             _HeaderBadge(
                               label:
-                                  '${book.metadata.totalSections} Sections',
+                                  'Ibice ${book.metadata.totalSections}',
                             ),
                             const SizedBox(width: 8),
                             _HeaderBadge(
                               label:
-                                  '${provider.totalPages} Prayers',
+                                  'Amapaji ${book.metadata.totalPages}',
                             ),
                             const SizedBox(width: 8),
                             _HeaderBadge(
                               label:
-                                  '${book.metadata.totalVerses} Verses',
+                                  'Paragarafe ${book.metadata.totalParagraphs}',
                             ),
                           ],
                         ),

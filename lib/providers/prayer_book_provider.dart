@@ -14,23 +14,17 @@ class PrayerBookProvider extends ChangeNotifier {
   String _searchQuery = '';
   List<SearchResult> _searchResults = [];
   bool _isSearching = false;
-
-  // Search filters
-  String? _typeFilter;      // e.g. 'collect', 'response', 'scripture'
-  int? _sectionFilter;      // section.id filter
+  String? _typeFilter;
+  int? _sectionFilter;
 
   // Favourites
   List<FavouriteItem> _favourites = [];
 
-  // Reading state
-  int _currentSectionIndex = 0;
-  int _currentChapterIndex = 0;
-
   // Font size
   double _fontSize = 16.0;
 
-  // Cached flat chapter list (built once after load)
-  List<GlobalChapter> _allChapters = [];
+  // Cached flat page list (built once after load)
+  List<FlatPage> _allPages = [];
 
   // ── Getters ──────────────────────────────────────────────────────────────────
 
@@ -43,11 +37,9 @@ class PrayerBookProvider extends ChangeNotifier {
   String? get typeFilter => _typeFilter;
   int? get sectionFilter => _sectionFilter;
   List<FavouriteItem> get favourites => _favourites;
-  int get currentSectionIndex => _currentSectionIndex;
-  int get currentChapterIndex => _currentChapterIndex;
   double get fontSize => _fontSize;
-  List<GlobalChapter> get allChapters => _allChapters;
-  int get totalPages => _allChapters.length;
+  List<FlatPage> get allPages => _allPages;
+  int get totalPages => _allPages.length;
 
   // ── Load ──────────────────────────────────────────────────────────────────────
 
@@ -61,7 +53,7 @@ class PrayerBookProvider extends ChangeNotifier {
           await rootBundle.loadString('assets/data/prayer_book.json');
       final jsonData = json.decode(jsonString) as Map<String, dynamic>;
       _book = PrayerBook.fromJson(jsonData);
-      _allChapters = _book!.allChaptersFlat;
+      _allPages = _book!.allPages;
 
       await _loadFavourites();
       await _loadPreferences();
@@ -72,6 +64,17 @@ class PrayerBookProvider extends ChangeNotifier {
       _error = 'Failed to load prayer book: ${e.toString()}';
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // ── Page navigation ───────────────────────────────────────────────────────────
+
+  /// Returns the FlatPage for a given 1-based PDF page number.
+  FlatPage? pageAtNumber(int pageNum) {
+    try {
+      return _allPages.firstWhere((fp) => fp.pageNum == pageNum);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -120,28 +123,24 @@ class PrayerBookProvider extends ChangeNotifier {
     final results = <SearchResult>[];
     final q = _searchQuery.toLowerCase();
 
-    for (final gc in _allChapters) {
-      // Apply section filter
-      if (_sectionFilter != null && gc.section.id != _sectionFilter) continue;
+    for (final fp in _allPages) {
+      if (_sectionFilter != null && fp.section.id != _sectionFilter) continue;
 
-      for (final verse in gc.chapter.verses) {
-        if (verse.isEmpty) continue;
-
-        // Apply type filter
-        if (_typeFilter != null && verse.type != _typeFilter) continue;
-
-        // Apply text filter (skip if query is empty — type/section filter alone is enough)
-        if (q.isNotEmpty && !verse.text.toLowerCase().contains(q)) continue;
+      for (int pi = 0; pi < fp.page.content.length; pi++) {
+        final para = fp.page.content[pi];
+        if (para.isEmpty) continue;
+        if (_typeFilter != null && para.type != _typeFilter) continue;
+        if (q.isNotEmpty && !para.text.toLowerCase().contains(q)) continue;
 
         results.add(SearchResult(
-          verseId: verse.id,
-          verseText: verse.text,
-          verseType: verse.type,
-          sectionId: gc.section.id,
-          sectionTitle: gc.section.title,
-          chapterId: gc.chapter.id,
-          chapterTitle: gc.chapter.title,
-          globalPage: gc.globalPage,
+          pageNum: fp.pageNum,
+          paragraphIndex: pi,
+          paragraphText: para.text,
+          paragraphType: para.type,
+          sectionId: fp.section.id,
+          sectionTitle: fp.section.title,
+          subsectionId: fp.subsection?.id,
+          subsectionTitle: fp.subsection?.title,
         ));
         if (results.length >= 200) break;
       }
@@ -155,21 +154,21 @@ class PrayerBookProvider extends ChangeNotifier {
 
   // ── Random discovery ─────────────────────────────────────────────────────────
 
-  /// Returns a random verse from the full book (non-empty, non-heading).
-  SearchResult? randomVerse() {
+  SearchResult? randomParagraph() {
     final pool = <SearchResult>[];
-    for (final gc in _allChapters) {
-      for (final verse in gc.chapter.verses) {
-        if (verse.isEmpty || verse.isHeading || verse.isRubric) continue;
+    for (final fp in _allPages) {
+      for (int pi = 0; pi < fp.page.content.length; pi++) {
+        final para = fp.page.content[pi];
+        if (para.isEmpty || para.isHeading || para.isRubric) continue;
         pool.add(SearchResult(
-          verseId: verse.id,
-          verseText: verse.text,
-          verseType: verse.type,
-          sectionId: gc.section.id,
-          sectionTitle: gc.section.title,
-          chapterId: gc.chapter.id,
-          chapterTitle: gc.chapter.title,
-          globalPage: gc.globalPage,
+          pageNum: fp.pageNum,
+          paragraphIndex: pi,
+          paragraphText: para.text,
+          paragraphType: para.type,
+          sectionId: fp.section.id,
+          sectionTitle: fp.section.title,
+          subsectionId: fp.subsection?.id,
+          subsectionTitle: fp.subsection?.title,
         ));
       }
     }
@@ -177,65 +176,39 @@ class PrayerBookProvider extends ChangeNotifier {
     return pool[Random().nextInt(pool.length)];
   }
 
-  // ── Page navigation ───────────────────────────────────────────────────────────
-
-  /// Returns the GlobalChapter at a 1-based global page number.
-  GlobalChapter? chapterAtPage(int page) => _book?.chapterAtPage(page);
-
-  /// Returns the global page number for a given chapter id.
-  int? globalPageForChapter(int chapterId) {
-    for (final gc in _allChapters) {
-      if (gc.chapter.id == chapterId) return gc.globalPage;
-    }
-    return null;
-  }
-
-  // ── Navigation state ──────────────────────────────────────────────────────────
-
-  void setCurrentSection(int index) {
-    _currentSectionIndex = index;
-    _currentChapterIndex = 0;
-    notifyListeners();
-  }
-
-  void setCurrentChapter(int index) {
-    _currentChapterIndex = index;
-    notifyListeners();
-  }
-
   // ── Favourites ────────────────────────────────────────────────────────────────
 
-  bool isFavourite(int verseId) {
-    return _favourites.any((f) => f.verseId == verseId);
+  bool isFavourite(String favKey) {
+    return _favourites.any((f) => f.favKey == favKey);
   }
 
   void toggleFavourite({
-    required int verseId,
-    required String verseText,
-    required String verseType,
+    required String favKey,
+    required int pageNum,
+    required int paragraphIndex,
+    required String paragraphText,
+    required String paragraphType,
     required int sectionId,
     required String sectionTitle,
-    required String sectionSlug,
-    required int chapterId,
-    required String chapterTitle,
-    required int globalPage,
+    String? subsectionId,
+    String? subsectionTitle,
   }) {
-    final existing = _favourites.indexWhere((f) => f.verseId == verseId);
+    final existing = _favourites.indexWhere((f) => f.favKey == favKey);
     if (existing >= 0) {
       _favourites.removeAt(existing);
     } else {
       _favourites.insert(
         0,
         FavouriteItem(
-          verseId: verseId,
-          verseText: verseText,
-          verseType: verseType,
+          favKey: favKey,
+          pageNum: pageNum,
+          paragraphIndex: paragraphIndex,
+          paragraphText: paragraphText,
+          paragraphType: paragraphType,
           sectionId: sectionId,
           sectionTitle: sectionTitle,
-          sectionSlug: sectionSlug,
-          chapterId: chapterId,
-          chapterTitle: chapterTitle,
-          globalPage: globalPage,
+          subsectionId: subsectionId,
+          subsectionTitle: subsectionTitle,
           savedAt: DateTime.now(),
         ),
       );
@@ -244,8 +217,8 @@ class PrayerBookProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void removeFavourite(int verseId) {
-    _favourites.removeWhere((f) => f.verseId == verseId);
+  void removeFavourite(String favKey) {
+    _favourites.removeWhere((f) => f.favKey == favKey);
     _saveFavourites();
     notifyListeners();
   }
@@ -253,15 +226,13 @@ class PrayerBookProvider extends ChangeNotifier {
   Future<void> _saveFavourites() async {
     final prefs = await SharedPreferences.getInstance();
     final list = _favourites.map((f) => json.encode(f.toJson())).toList();
-    await prefs.setStringList('favourites_v2', list);
+    await prefs.setStringList('favourites_v3', list);
   }
 
   Future<void> _loadFavourites() async {
     final prefs = await SharedPreferences.getInstance();
-    // Try new key first, fall back to old key for migration
-    final list = prefs.getStringList('favourites_v2') ??
-        prefs.getStringList('favourites') ??
-        [];
+    // v3 is the page-based key; earlier verse-based keys are incompatible
+    final list = prefs.getStringList('favourites_v3') ?? [];
     _favourites = list.map((s) {
       try {
         final map = json.decode(s) as Map<String, dynamic>;

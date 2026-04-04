@@ -20,7 +20,7 @@ class FavouritesScreen extends StatelessWidget {
         automaticallyImplyLeading: false,
         backgroundColor: AppColors.white,
         title: Text(
-          'Saved',
+          'Byabitswe',
           style: GoogleFonts.playfairDisplay(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -32,7 +32,7 @@ class FavouritesScreen extends StatelessWidget {
                 TextButton(
                   onPressed: () => _confirmClearAll(context, provider),
                   child: Text(
-                    'Clear all',
+                    'Siba Byose',
                     style: GoogleFonts.lato(
                       fontSize: 13,
                       color: AppColors.rubricColor,
@@ -48,10 +48,7 @@ class FavouritesScreen extends StatelessWidget {
       ),
       body: favourites.isEmpty
           ? _EmptyFavourites()
-          : _FavouriteList(
-              favourites: favourites,
-              provider: provider,
-            ),
+          : _FavouriteList(favourites: favourites, provider: provider),
     );
   }
 
@@ -62,7 +59,7 @@ class FavouritesScreen extends StatelessWidget {
         backgroundColor: AppColors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'Clear all saved items?',
+          'Siba ibyo bitswe byose?',
           style: GoogleFonts.playfairDisplay(
             fontSize: 17,
             fontWeight: FontWeight.w700,
@@ -70,7 +67,7 @@ class FavouritesScreen extends StatelessWidget {
           ),
         ),
         content: Text(
-          'This will remove all your saved verses and prayers.',
+          'Bizakuraho imigabane yose mwabitswe.',
           style: GoogleFonts.lato(
             fontSize: 14,
             color: AppColors.textSecondary,
@@ -80,20 +77,18 @@ class FavouritesScreen extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.lato(color: AppColors.grey600),
-            ),
+            child: Text('Reka',
+                style: GoogleFonts.lato(color: AppColors.grey600)),
           ),
           TextButton(
             onPressed: () {
               for (final fav in List.from(provider.favourites)) {
-                provider.removeFavourite(fav.verseId);
+                provider.removeFavourite(fav.favKey);
               }
               Navigator.pop(ctx);
             },
             child: Text(
-              'Clear all',
+              'Siba Byose',
               style: GoogleFonts.lato(
                 color: AppColors.rubricColor,
                 fontWeight: FontWeight.w700,
@@ -122,15 +117,12 @@ class _EmptyFavourites extends StatelessWidget {
               color: AppColors.favourite.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.bookmark_border,
-              size: 38,
-              color: AppColors.favourite,
-            ),
+            child: const Icon(Icons.bookmark_border,
+                size: 38, color: AppColors.favourite),
           ),
           const SizedBox(height: 20),
           Text(
-            'No saved items yet',
+            'Nta kintu nabwo kibitswe',
             style: GoogleFonts.playfairDisplay(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -139,7 +131,7 @@ class _EmptyFavourites extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap the bookmark icon on any verse\nwhile reading to save it here.',
+            "Kanda akamaro k'agapapuro ku migabane\nugusome kugira ngo ubibitseho hano.",
             style: GoogleFonts.lato(
               fontSize: 14,
               color: AppColors.textHint,
@@ -169,14 +161,11 @@ class _FavouriteList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       itemCount: favourites.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 10),
-      itemBuilder: (context, index) {
-        final fav = favourites[index];
-        return _FavouriteCard(
-          fav: fav,
-          provider: provider,
-        );
-      },
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) => _FavouriteCard(
+        fav: favourites[index],
+        provider: provider,
+      ),
     );
   }
 }
@@ -187,10 +176,19 @@ class _FavouriteCard extends StatelessWidget {
 
   const _FavouriteCard({required this.fav, required this.provider});
 
+  void _navigateTo(BuildContext context) {
+    final fp = provider.pageAtNumber(fav.pageNum);
+    if (fp == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => PageReadingScreen(flatPage: fp)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dismissible(
-      key: ValueKey(fav.verseId),
+      key: ValueKey(fav.favKey),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -199,14 +197,11 @@ class _FavouriteCard extends StatelessWidget {
           color: AppColors.rubricColor.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(
-          Icons.delete_outline,
-          color: AppColors.rubricColor,
-        ),
+        child: const Icon(Icons.delete_outline, color: AppColors.rubricColor),
       ),
-      onDismissed: (_) => provider.removeFavourite(fav.verseId),
+      onDismissed: (_) => provider.removeFavourite(fav.favKey),
       child: GestureDetector(
-        onTap: () => _navigateToChapter(context),
+        onTap: () => _navigateTo(context),
         child: Container(
           decoration: BoxDecoration(
             color: AppColors.white,
@@ -226,17 +221,12 @@ class _FavouriteCard extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.bookmark,
-                      size: 14,
-                      color: AppColors.favourite,
-                    ),
+                    const Icon(Icons.bookmark,
+                        size: 14, color: AppColors.favourite),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        fav.chapterTitle.isNotEmpty
-                            ? '${fav.sectionTitle}  /  ${fav.chapterTitle}'
-                            : fav.sectionTitle,
+                        fav.breadcrumb,
                         style: GoogleFonts.lato(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -248,21 +238,18 @@ class _FavouriteCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: () => provider.removeFavourite(fav.verseId),
-                      child: const Icon(
-                        Icons.close,
-                        size: 16,
-                        color: AppColors.grey400,
-                      ),
+                      onTap: () => provider.removeFavourite(fav.favKey),
+                      child: const Icon(Icons.close,
+                          size: 16, color: AppColors.grey400),
                     ),
                   ],
                 ),
               ),
-              // Verse text
+              // Paragraph text
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
                 child: Text(
-                  fav.verseText,
+                  fav.paragraphText,
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.lato(
@@ -277,17 +264,16 @@ class _FavouriteCard extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
                 child: Row(
                   children: [
-                    _TypeBadge(type: fav.verseType),
+                    _TypeBadge(type: fav.paragraphType),
                     const Spacer(),
-                    if (fav.globalPage > 0)
-                      Text(
-                        'Prayer ${fav.globalPage}  ·  ',
-                        style: GoogleFonts.lato(
-                          fontSize: 10,
-                          color: AppColors.primary.withValues(alpha: 0.7),
-                          fontWeight: FontWeight.w600,
-                        ),
+                    Text(
+                      'Paji ${fav.pageNum}  ·  ',
+                      style: GoogleFonts.lato(
+                        fontSize: 10,
+                        color: AppColors.primary.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w600,
                       ),
+                    ),
                     Text(
                       _formatDate(fav.savedAt),
                       style: GoogleFonts.lato(
@@ -305,57 +291,7 @@ class _FavouriteCard extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime dt) {
-    return '${dt.day}/${dt.month}/${dt.year}';
-  }
-
-  void _navigateToChapter(BuildContext context) {
-    // Try fast path via global page
-    if (fav.globalPage > 0) {
-      final gc = provider.chapterAtPage(fav.globalPage);
-      if (gc != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ChapterScreen(
-              section: gc.section,
-              chapter: gc.chapter,
-              sectionIndex: gc.sectionIndex,
-              globalPage: gc.globalPage,
-            ),
-          ),
-        );
-        return;
-      }
-    }
-
-    // Fallback: find by IDs
-    final book = provider.book;
-    if (book == null) return;
-
-    for (int i = 0; i < book.sections.length; i++) {
-      final s = book.sections[i];
-      if (s.id == fav.sectionId) {
-        for (final c in s.chapters) {
-          if (c.id == fav.chapterId) {
-            final gPage = provider.globalPageForChapter(c.id) ?? 0;
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ChapterScreen(
-                  section: s,
-                  chapter: c,
-                  sectionIndex: i,
-                  globalPage: gPage,
-                ),
-              ),
-            );
-            return;
-          }
-        }
-      }
-    }
-  }
+  String _formatDate(DateTime dt) => '${dt.day}/${dt.month}/${dt.year}';
 }
 
 class _TypeBadge extends StatelessWidget {
