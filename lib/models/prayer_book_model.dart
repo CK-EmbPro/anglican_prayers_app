@@ -31,6 +31,9 @@ class PrayerBookMetadata {
       totalVerses: json['totalVerses'] ?? 0,
     );
   }
+
+  // Chapters are the navigable pages in the app
+  int get totalPages => totalChapters;
 }
 
 class Verse {
@@ -104,6 +107,10 @@ class Chapter {
   }
 
   int get nonEmptyVerseCount => verses.where((v) => !v.isEmpty).length;
+
+  // Display label for breadcrumbs / headers
+  String displayTitle(String sectionTitle) =>
+      title.isNotEmpty ? title : sectionTitle;
 }
 
 class Section {
@@ -163,9 +170,50 @@ class PrayerBook {
       sections: sectionList,
     );
   }
+
+  /// All chapters across all sections in a flat list with global page number.
+  List<GlobalChapter> get allChaptersFlat {
+    final result = <GlobalChapter>[];
+    int page = 1;
+    for (int si = 0; si < sections.length; si++) {
+      final section = sections[si];
+      for (final chapter in section.chapters) {
+        result.add(GlobalChapter(
+          section: section,
+          chapter: chapter,
+          sectionIndex: si,
+          globalPage: page++,
+        ));
+      }
+    }
+    return result;
+  }
+
+  /// Finds a GlobalChapter by its global page number (1-based).
+  GlobalChapter? chapterAtPage(int page) {
+    final flat = allChaptersFlat;
+    if (page < 1 || page > flat.length) return null;
+    return flat[page - 1];
+  }
 }
 
-// Flat structure for search results
+/// A chapter enriched with its position in the full book.
+class GlobalChapter {
+  final Section section;
+  final Chapter chapter;
+  final int sectionIndex;
+  final int globalPage;
+
+  const GlobalChapter({
+    required this.section,
+    required this.chapter,
+    required this.sectionIndex,
+    required this.globalPage,
+  });
+}
+
+// ── Search result ─────────────────────────────────────────────────────────────
+
 class SearchResult {
   final int verseId;
   final String verseText;
@@ -174,6 +222,7 @@ class SearchResult {
   final String sectionTitle;
   final int chapterId;
   final String chapterTitle;
+  final int globalPage;
 
   const SearchResult({
     required this.verseId,
@@ -183,10 +232,12 @@ class SearchResult {
     required this.sectionTitle,
     required this.chapterId,
     required this.chapterTitle,
+    required this.globalPage,
   });
 }
 
-// Favourite item
+// ── Favourite item ────────────────────────────────────────────────────────────
+
 class FavouriteItem {
   final int verseId;
   final String verseText;
@@ -196,6 +247,7 @@ class FavouriteItem {
   final String sectionSlug;
   final int chapterId;
   final String chapterTitle;
+  final int globalPage;
   final DateTime savedAt;
 
   const FavouriteItem({
@@ -207,6 +259,7 @@ class FavouriteItem {
     required this.sectionSlug,
     required this.chapterId,
     required this.chapterTitle,
+    required this.globalPage,
     required this.savedAt,
   });
 
@@ -219,6 +272,7 @@ class FavouriteItem {
         'sectionSlug': sectionSlug,
         'chapterId': chapterId,
         'chapterTitle': chapterTitle,
+        'globalPage': globalPage,
         'savedAt': savedAt.toIso8601String(),
       };
 
@@ -232,6 +286,7 @@ class FavouriteItem {
       sectionSlug: json['sectionSlug'] ?? '',
       chapterId: json['chapterId'] ?? 0,
       chapterTitle: json['chapterTitle'] ?? '',
+      globalPage: json['globalPage'] ?? 0,
       savedAt: DateTime.tryParse(json['savedAt'] ?? '') ?? DateTime.now(),
     );
   }

@@ -22,12 +22,14 @@ class ChapterScreen extends StatefulWidget {
   final Section section;
   final Chapter chapter;
   final int sectionIndex;
+  final int? globalPage;
 
   const ChapterScreen({
     super.key,
     required this.section,
     required this.chapter,
     required this.sectionIndex,
+    this.globalPage,
   });
 
   @override
@@ -41,13 +43,25 @@ class _ChapterScreenState extends State<ChapterScreen> {
   Color get _accent =>
       _sectionAccents[widget.sectionIndex % _sectionAccents.length];
 
-  // Only render non-empty verses for performance
-  late final List<Verse> _displayVerses;
+  late List<Verse> _displayVerses;
+  late int _resolvedGlobalPage;
 
   @override
   void initState() {
     super.initState();
     _displayVerses = widget.chapter.verses;
+    _resolvedGlobalPage = widget.globalPage ?? 0;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Resolve global page if not provided
+    if (_resolvedGlobalPage == 0) {
+      final provider = context.read<PrayerBookProvider>();
+      _resolvedGlobalPage =
+          provider.globalPageForChapter(widget.chapter.id) ?? 0;
+    }
   }
 
   @override
@@ -64,9 +78,130 @@ class _ChapterScreenState extends State<ChapterScreen> {
     );
   }
 
+  void _navigatePrev(BuildContext context, PrayerBookProvider provider) {
+    if (_resolvedGlobalPage <= 1) return;
+    final gc = provider.chapterAtPage(_resolvedGlobalPage - 1);
+    if (gc == null) return;
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => ChapterScreen(
+          section: gc.section,
+          chapter: gc.chapter,
+          sectionIndex: gc.sectionIndex,
+          globalPage: gc.globalPage,
+        ),
+        transitionDuration: const Duration(milliseconds: 250),
+        transitionsBuilder: (_, anim, __, child) =>
+            SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(-1, 0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+              child: child,
+            ),
+      ),
+    );
+  }
+
+  void _navigateNext(BuildContext context, PrayerBookProvider provider) {
+    if (_resolvedGlobalPage >= provider.totalPages) return;
+    final gc = provider.chapterAtPage(_resolvedGlobalPage + 1);
+    if (gc == null) return;
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => ChapterScreen(
+          section: gc.section,
+          chapter: gc.chapter,
+          sectionIndex: gc.sectionIndex,
+          globalPage: gc.globalPage,
+        ),
+        transitionDuration: const Duration(milliseconds: 250),
+        transitionsBuilder: (_, anim, __, child) =>
+            SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(1, 0),
+                end: Offset.zero,
+              ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+              child: child,
+            ),
+      ),
+    );
+  }
+
+  void _showGoToPageDialog(BuildContext context, PrayerBookProvider provider) {
+    final controller = TextEditingController(
+      text: _resolvedGlobalPage > 0 ? '$_resolvedGlobalPage' : '',
+    );
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Go to prayer',
+          style: GoogleFonts.playfairDisplay(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: '1 – ${provider.totalPages}',
+            prefixIcon: const Icon(Icons.auto_stories_outlined,
+                color: AppColors.primary),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel',
+                style: GoogleFonts.lato(color: AppColors.grey600)),
+          ),
+          TextButton(
+            onPressed: () {
+              final page = int.tryParse(controller.text.trim());
+              Navigator.pop(ctx);
+              if (page == null) return;
+              final gc = provider.chapterAtPage(page);
+              if (gc == null) return;
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChapterScreen(
+                    section: gc.section,
+                    chapter: gc.chapter,
+                    sectionIndex: gc.sectionIndex,
+                    globalPage: gc.globalPage,
+                  ),
+                ),
+              );
+            },
+            child: Text(
+              'Go',
+              style: GoogleFonts.lato(
+                color: _accent,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PrayerBookProvider>();
+    final totalPages = provider.totalPages;
+
+    final hasPrev = _resolvedGlobalPage > 1;
+    final hasNext = _resolvedGlobalPage < totalPages;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -82,6 +217,17 @@ class _ChapterScreenState extends State<ChapterScreen> {
             scrolledUnderElevation: 1,
             shadowColor: AppColors.divider,
             iconTheme: const IconThemeData(color: AppColors.primary),
+            leading: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.arrow_back, color: _accent, size: 20),
+              ),
+            ),
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -90,19 +236,44 @@ class _ChapterScreenState extends State<ChapterScreen> {
                       ? widget.section.title
                       : widget.chapter.title,
                   style: GoogleFonts.playfairDisplay(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textPrimary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  widget.section.title,
-                  style: GoogleFonts.lato(
-                    fontSize: 11,
-                    color: AppColors.textHint,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      widget.section.title,
+                      style: GoogleFonts.lato(
+                        fontSize: 11,
+                        color: AppColors.textHint,
+                      ),
+                    ),
+                    if (_resolvedGlobalPage > 0) ...[
+                      Text(
+                        '  ·  ',
+                        style: GoogleFonts.lato(
+                          fontSize: 11,
+                          color: AppColors.grey400,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () =>
+                            _showGoToPageDialog(context, provider),
+                        child: Text(
+                          'Prayer $_resolvedGlobalPage of $totalPages',
+                          style: GoogleFonts.lato(
+                            fontSize: 11,
+                            color: _accent,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
@@ -134,13 +305,11 @@ class _ChapterScreenState extends State<ChapterScreen> {
           ),
 
           // ── Legend ──────────────────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: _LegendBar(),
-          ),
+          SliverToBoxAdapter(child: _LegendBar()),
 
           // ── Verses ──────────────────────────────────────────────────────────
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 48),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -152,6 +321,7 @@ class _ChapterScreenState extends State<ChapterScreen> {
                     sectionSlug: widget.section.slug,
                     chapterId: widget.chapter.id,
                     chapterTitle: widget.chapter.title,
+                    globalPage: _resolvedGlobalPage,
                   );
                 },
                 childCount: _displayVerses.length,
@@ -159,14 +329,156 @@ class _ChapterScreenState extends State<ChapterScreen> {
             ),
           ),
 
-          // ── Bottom padding ───────────────────────────────────────────────────
-          const SliverToBoxAdapter(child: SizedBox(height: 20)),
+          // ── Prev / Next navigation row ───────────────────────────────────────
+          SliverToBoxAdapter(
+            child: _PageNavRow(
+              hasPrev: hasPrev,
+              hasNext: hasNext,
+              accent: _accent,
+              onPrev: () => _navigatePrev(context, provider),
+              onNext: () => _navigateNext(context, provider),
+              currentPage: _resolvedGlobalPage,
+              totalPages: totalPages,
+              onGoTo: () => _showGoToPageDialog(context, provider),
+            ),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
       floatingActionButton: _ScrollTopFab(
         scrollController: _scrollController,
         accent: _accent,
         onTap: _scrollToTop,
+      ),
+    );
+  }
+}
+
+// ── Page nav row ──────────────────────────────────────────────────────────────
+
+class _PageNavRow extends StatelessWidget {
+  final bool hasPrev;
+  final bool hasNext;
+  final Color accent;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
+  final int currentPage;
+  final int totalPages;
+  final VoidCallback onGoTo;
+
+  const _PageNavRow({
+    required this.hasPrev,
+    required this.hasNext,
+    required this.accent,
+    required this.onPrev,
+    required this.onNext,
+    required this.currentPage,
+    required this.totalPages,
+    required this.onGoTo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Row(
+        children: [
+          _NavBtn(
+            icon: Icons.chevron_left,
+            label: 'Previous',
+            enabled: hasPrev,
+            accent: accent,
+            onTap: onPrev,
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: onGoTo,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  currentPage > 0 ? '$currentPage / $totalPages' : '—',
+                  style: GoogleFonts.lato(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: accent,
+                  ),
+                ),
+                Text(
+                  'Tap to jump',
+                  style: GoogleFonts.lato(
+                    fontSize: 10,
+                    color: AppColors.textHint,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Spacer(),
+          _NavBtn(
+            icon: Icons.chevron_right,
+            label: 'Next',
+            enabled: hasNext,
+            accent: accent,
+            onTap: onNext,
+            iconFirst: false,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NavBtn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool enabled;
+  final Color accent;
+  final VoidCallback onTap;
+  final bool iconFirst;
+
+  const _NavBtn({
+    required this.icon,
+    required this.label,
+    required this.enabled,
+    required this.accent,
+    required this.onTap,
+    this.iconFirst = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = enabled ? accent : AppColors.grey400;
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: iconFirst
+            ? [
+                Icon(icon, size: 18, color: color),
+                const SizedBox(width: 4),
+                Text(label,
+                    style: GoogleFonts.lato(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: color)),
+              ]
+            : [
+                Text(label,
+                    style: GoogleFonts.lato(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: color)),
+                const SizedBox(width: 4),
+                Icon(icon, size: 18, color: color),
+              ],
       ),
     );
   }
@@ -385,7 +697,9 @@ class _LegendItem extends StatelessWidget {
           decoration: BoxDecoration(
             color: bordered ? color.withValues(alpha: 0.15) : color,
             borderRadius: BorderRadius.circular(2),
-            border: bordered ? Border(left: BorderSide(color: color, width: 2)) : null,
+            border: bordered
+                ? Border(left: BorderSide(color: color, width: 2))
+                : null,
           ),
         ),
         const SizedBox(width: 5),

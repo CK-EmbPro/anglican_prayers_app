@@ -8,6 +8,7 @@ import '../widgets/section_card.dart';
 import 'section_screen.dart';
 import 'search_screen.dart';
 import 'favourites_screen.dart';
+import 'content_browser_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
         index: _navIndex,
         children: const [
           _LibraryTab(),
+          ContentBrowserScreen(),
           SearchScreen(),
           FavouritesScreen(),
         ],
@@ -58,18 +60,25 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () => setState(() => _navIndex = 0),
                 ),
                 _NavItem(
+                  icon: Icons.auto_stories_outlined,
+                  activeIcon: Icons.auto_stories,
+                  label: 'Browse',
+                  selected: _navIndex == 1,
+                  onTap: () => setState(() => _navIndex = 1),
+                ),
+                _NavItem(
                   icon: Icons.search_outlined,
                   activeIcon: Icons.search,
                   label: 'Search',
-                  selected: _navIndex == 1,
-                  onTap: () => setState(() => _navIndex = 1),
+                  selected: _navIndex == 2,
+                  onTap: () => setState(() => _navIndex = 2),
                 ),
                 _NavItem(
                   icon: Icons.bookmark_border,
                   activeIcon: Icons.bookmark,
                   label: 'Saved',
-                  selected: _navIndex == 2,
-                  onTap: () => setState(() => _navIndex = 2),
+                  selected: _navIndex == 3,
+                  onTap: () => setState(() => _navIndex = 3),
                 ),
               ],
             ),
@@ -101,7 +110,7 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -184,6 +193,11 @@ class _LibraryTab extends StatelessWidget {
                             _HeaderBadge(
                               label:
                                   '${book.metadata.totalSections} Sections',
+                            ),
+                            const SizedBox(width: 8),
+                            _HeaderBadge(
+                              label:
+                                  '${provider.totalPages} Prayers',
                             ),
                             const SizedBox(width: 8),
                             _HeaderBadge(

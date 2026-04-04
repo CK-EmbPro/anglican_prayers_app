@@ -221,7 +221,8 @@ class _FavouriteCard extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
                 decoration: const BoxDecoration(
                   color: AppColors.cardBg,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                  borderRadius:
+                      BorderRadius.vertical(top: Radius.circular(12)),
                 ),
                 child: Row(
                   children: [
@@ -233,7 +234,9 @@ class _FavouriteCard extends StatelessWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        '${fav.sectionTitle}  /  ${fav.chapterTitle}',
+                        fav.chapterTitle.isNotEmpty
+                            ? '${fav.sectionTitle}  /  ${fav.chapterTitle}'
+                            : fav.sectionTitle,
                         style: GoogleFonts.lato(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -276,6 +279,15 @@ class _FavouriteCard extends StatelessWidget {
                   children: [
                     _TypeBadge(type: fav.verseType),
                     const Spacer(),
+                    if (fav.globalPage > 0)
+                      Text(
+                        'Prayer ${fav.globalPage}  ·  ',
+                        style: GoogleFonts.lato(
+                          fontSize: 10,
+                          color: AppColors.primary.withValues(alpha: 0.7),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     Text(
                       _formatDate(fav.savedAt),
                       style: GoogleFonts.lato(
@@ -298,39 +310,50 @@ class _FavouriteCard extends StatelessWidget {
   }
 
   void _navigateToChapter(BuildContext context) {
+    // Try fast path via global page
+    if (fav.globalPage > 0) {
+      final gc = provider.chapterAtPage(fav.globalPage);
+      if (gc != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChapterScreen(
+              section: gc.section,
+              chapter: gc.chapter,
+              sectionIndex: gc.sectionIndex,
+              globalPage: gc.globalPage,
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    // Fallback: find by IDs
     final book = provider.book;
     if (book == null) return;
-
-    Section? section;
-    Chapter? chapter;
-    int sectionIndex = 0;
 
     for (int i = 0; i < book.sections.length; i++) {
       final s = book.sections[i];
       if (s.id == fav.sectionId) {
-        section = s;
-        sectionIndex = i;
         for (final c in s.chapters) {
           if (c.id == fav.chapterId) {
-            chapter = c;
-            break;
+            final gPage = provider.globalPageForChapter(c.id) ?? 0;
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChapterScreen(
+                  section: s,
+                  chapter: c,
+                  sectionIndex: i,
+                  globalPage: gPage,
+                ),
+              ),
+            );
+            return;
           }
         }
-        break;
       }
-    }
-
-    if (section != null && chapter != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ChapterScreen(
-            section: section!,
-            chapter: chapter!,
-            sectionIndex: sectionIndex,
-          ),
-        ),
-      );
     }
   }
 }

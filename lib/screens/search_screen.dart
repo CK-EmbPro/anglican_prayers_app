@@ -6,6 +6,17 @@ import '../providers/prayer_book_provider.dart';
 import '../utils/app_colors.dart';
 import 'chapter_screen.dart';
 
+const _typeFilters = [
+  ('All types', null),
+  ('Prayer', 'prayer'),
+  ('Collect', 'collect'),
+  ('Response', 'response'),
+  ('Scripture', 'scripture'),
+  ('Creed', 'creed'),
+  ('Canticle', 'canticle'),
+  ('Rubric', 'rubric'),
+];
+
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -29,6 +40,9 @@ class _SearchScreenState extends State<SearchScreen> {
     final provider = context.watch<PrayerBookProvider>();
     final results = provider.searchResults;
     final query = provider.searchQuery;
+    final hasFilters =
+        provider.typeFilter != null || provider.sectionFilter != null;
+    final isActive = query.isNotEmpty || hasFilters;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -44,47 +58,75 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
         backgroundColor: AppColors.white,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(64),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: TextField(
-              controller: _controller,
-              focusNode: _focusNode,
-              onChanged: (val) => provider.search(val),
-              style: GoogleFonts.lato(
-                fontSize: 15,
-                color: AppColors.textPrimary,
-              ),
-              decoration: InputDecoration(
-                hintText: 'Search prayers, verses, articles...',
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: AppColors.primary,
-                  size: 20,
+          preferredSize: const Size.fromHeight(116),
+          child: Column(
+            children: [
+              // Search bar
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: TextField(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  onChanged: (val) => provider.search(val),
+                  style: GoogleFonts.lato(
+                    fontSize: 15,
+                    color: AppColors.textPrimary,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Search prayers, verses, articles...',
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    suffixIcon: _controller.text.isNotEmpty
+                        ? GestureDetector(
+                            onTap: () {
+                              _controller.clear();
+                              provider.clearSearch();
+                              _focusNode.requestFocus();
+                            },
+                            child: const Icon(
+                              Icons.close,
+                              color: AppColors.grey400,
+                              size: 18,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
-                suffixIcon: _controller.text.isNotEmpty
-                    ? GestureDetector(
-                        onTap: () {
-                          _controller.clear();
-                          provider.clearSearch();
-                          _focusNode.requestFocus();
-                        },
-                        child: const Icon(
-                          Icons.close,
-                          color: AppColors.grey400,
-                          size: 18,
-                        ),
-                      )
-                    : null,
               ),
-            ),
+              // Type filter chips
+              SizedBox(
+                height: 44,
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _typeFilters.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, i) {
+                    final (label, value) = _typeFilters[i];
+                    final selected = provider.typeFilter == value;
+                    return _FilterChip(
+                      label: label,
+                      selected: selected,
+                      onTap: () {
+                        if (selected && value == null) return;
+                        provider.setTypeFilter(selected ? null : value);
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
           ),
         ),
       ),
-      body: query.isEmpty
-          ? _EmptyState()
+      body: !isActive
+          ? _EmptyState(provider: provider)
           : results.isEmpty
-              ? _NoResults(query: query)
+              ? _NoResults(query: query, hasFilter: hasFilters)
               : _ResultsList(
                   results: results,
                   query: query,
@@ -94,14 +136,58 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 }
 
+// ── Filter chip ───────────────────────────────────────────────────────────────
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : AppColors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.divider,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.lato(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: selected ? AppColors.white : AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ── Empty state ───────────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
+  final PrayerBookProvider provider;
+
+  const _EmptyState({required this.provider});
+
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(vertical: 32),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
             width: 80,
@@ -135,10 +221,11 @@ class _EmptyState extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
-          // Quick filter chips
+          const SizedBox(height: 28),
           Wrap(
             spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
             children: const [
               _SuggestionChip(label: 'Litani'),
               _SuggestionChip(label: 'Isabato'),
@@ -147,6 +234,9 @@ class _EmptyState extends StatelessWidget {
               _SuggestionChip(label: 'Ingingo'),
             ],
           ),
+          const SizedBox(height: 32),
+          // Discover random verse
+          _DiscoverCard(provider: provider),
         ],
       ),
     );
@@ -185,12 +275,175 @@ class _SuggestionChip extends StatelessWidget {
   }
 }
 
+// ── Discover card ─────────────────────────────────────────────────────────────
+
+class _DiscoverCard extends StatefulWidget {
+  final PrayerBookProvider provider;
+
+  const _DiscoverCard({required this.provider});
+
+  @override
+  State<_DiscoverCard> createState() => _DiscoverCardState();
+}
+
+class _DiscoverCardState extends State<_DiscoverCard> {
+  SearchResult? _discovered;
+
+  void _discover() {
+    setState(() => _discovered = widget.provider.randomVerse());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Discover',
+                style: GoogleFonts.lato(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textHint,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: _discover,
+                child: Row(
+                  children: [
+                    const Icon(Icons.shuffle, size: 14, color: AppColors.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Random verse',
+                      style: GoogleFonts.lato(
+                        fontSize: 12,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (_discovered != null)
+            GestureDetector(
+              onTap: () => _navigateTo(context, _discovered!),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.divider),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${_discovered!.sectionTitle}  /  ${_discovered!.chapterTitle}',
+                      style: GoogleFonts.lato(
+                        fontSize: 11,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _discovered!.verseText,
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.lato(
+                        fontSize: 14,
+                        height: 1.6,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _TypeBadge(type: _discovered!.verseType),
+                        const Spacer(),
+                        Text(
+                          'Prayer ${_discovered!.globalPage}',
+                          style: GoogleFonts.lato(
+                            fontSize: 10,
+                            color: AppColors.textHint,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            GestureDetector(
+              onTap: _discover,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    style: BorderStyle.solid,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.auto_awesome,
+                        size: 28,
+                        color: AppColors.primary.withValues(alpha: 0.5)),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tap to discover a random verse',
+                      style: GoogleFonts.lato(
+                        fontSize: 13,
+                        color: AppColors.textHint,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _navigateTo(BuildContext context, SearchResult result) {
+    final gc = widget.provider.chapterAtPage(result.globalPage);
+    if (gc == null) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChapterScreen(
+          section: gc.section,
+          chapter: gc.chapter,
+          sectionIndex: gc.sectionIndex,
+          globalPage: gc.globalPage,
+        ),
+      ),
+    );
+  }
+}
+
 // ── No results ────────────────────────────────────────────────────────────────
 
 class _NoResults extends StatelessWidget {
   final String query;
+  final bool hasFilter;
 
-  const _NoResults({required this.query});
+  const _NoResults({required this.query, required this.hasFilter});
 
   @override
   Widget build(BuildContext context) {
@@ -201,16 +454,21 @@ class _NoResults extends StatelessWidget {
           const Icon(Icons.search_off, size: 48, color: AppColors.grey400),
           const SizedBox(height: 16),
           Text(
-            'No results for "$query"',
+            query.isNotEmpty
+                ? 'No results for "$query"'
+                : 'No results for selected filter',
             style: GoogleFonts.lato(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: AppColors.textSecondary,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            'Try a different search term',
+            hasFilter
+                ? 'Try adjusting the type filter above'
+                : 'Try a different search term',
             style: GoogleFonts.lato(
               fontSize: 13,
               color: AppColors.textHint,
@@ -304,7 +562,9 @@ class _ResultCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    '${result.sectionTitle}  /  ${result.chapterTitle}',
+                    result.chapterTitle.isNotEmpty
+                        ? '${result.sectionTitle}  /  ${result.chapterTitle}'
+                        : result.sectionTitle,
                     style: GoogleFonts.lato(
                       fontSize: 11,
                       color: AppColors.primary,
@@ -329,8 +589,21 @@ class _ResultCard extends StatelessWidget {
             // Highlighted text
             _HighlightedText(text: result.verseText, query: query),
             const SizedBox(height: 8),
-            // Type badge
-            _TypeBadge(type: result.verseType),
+            // Footer row
+            Row(
+              children: [
+                _TypeBadge(type: result.verseType),
+                const Spacer(),
+                if (result.globalPage > 0)
+                  Text(
+                    'Prayer ${result.globalPage}',
+                    style: GoogleFonts.lato(
+                      fontSize: 10,
+                      color: AppColors.textHint,
+                    ),
+                  ),
+              ],
+            ),
           ],
         ),
       ),
@@ -338,39 +611,45 @@ class _ResultCard extends StatelessWidget {
   }
 
   void _navigateToChapter(BuildContext context) {
-    final book = provider.book;
-    if (book == null) return;
-
-    Section? section;
-    Chapter? chapter;
-    int sectionIndex = 0;
-
-    for (int i = 0; i < book.sections.length; i++) {
-      final s = book.sections[i];
-      if (s.id == result.sectionId) {
-        section = s;
-        sectionIndex = i;
-        for (final c in s.chapters) {
-          if (c.id == result.chapterId) {
-            chapter = c;
-            break;
-          }
-        }
-        break;
-      }
-    }
-
-    if (section != null && chapter != null) {
+    final gc = provider.chapterAtPage(result.globalPage);
+    if (gc != null) {
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ChapterScreen(
-            section: section!,
-            chapter: chapter!,
-            sectionIndex: sectionIndex,
+            section: gc.section,
+            chapter: gc.chapter,
+            sectionIndex: gc.sectionIndex,
+            globalPage: gc.globalPage,
           ),
         ),
       );
+      return;
+    }
+
+    // Fallback: find by IDs
+    final book = provider.book;
+    if (book == null) return;
+    for (int i = 0; i < book.sections.length; i++) {
+      final s = book.sections[i];
+      if (s.id == result.sectionId) {
+        for (final c in s.chapters) {
+          if (c.id == result.chapterId) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChapterScreen(
+                  section: s,
+                  chapter: c,
+                  sectionIndex: i,
+                  globalPage: result.globalPage,
+                ),
+              ),
+            );
+            return;
+          }
+        }
+      }
     }
   }
 
@@ -384,6 +663,7 @@ class _ResultCard extends StatelessWidget {
       sectionSlug: '',
       chapterId: result.chapterId,
       chapterTitle: result.chapterTitle,
+      globalPage: result.globalPage,
     );
   }
 }
@@ -398,6 +678,19 @@ class _HighlightedText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (query.isEmpty) {
+      return Text(
+        text,
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+        style: GoogleFonts.lato(
+          fontSize: 14,
+          height: 1.6,
+          color: AppColors.textPrimary,
+        ),
+      );
+    }
+
     final lowerText = text.toLowerCase();
     final lowerQuery = query.toLowerCase();
     final index = lowerText.indexOf(lowerQuery);

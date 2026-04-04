@@ -142,7 +142,9 @@ class SectionCard extends StatelessWidget {
                         children: [
                           _StatPill(
                             icon: Icons.layers_outlined,
-                            label: '${section.chapters.length} chapters',
+                            label: section.chapters.length == 1
+                                ? '1 prayer'
+                                : '${section.chapters.length} prayers',
                             accent: accent,
                           ),
                           _StatPill(

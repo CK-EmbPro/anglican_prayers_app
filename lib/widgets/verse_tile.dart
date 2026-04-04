@@ -12,6 +12,7 @@ class VerseTile extends StatelessWidget {
   final String sectionSlug;
   final int chapterId;
   final String chapterTitle;
+  final int globalPage;
   final double? fontSizeOverride;
 
   const VerseTile({
@@ -22,6 +23,7 @@ class VerseTile extends StatelessWidget {
     required this.sectionSlug,
     required this.chapterId,
     required this.chapterTitle,
+    required this.globalPage,
     this.fontSizeOverride,
   });
 
@@ -49,6 +51,7 @@ class VerseTile extends StatelessWidget {
         sectionSlug: sectionSlug,
         chapterId: chapterId,
         chapterTitle: chapterTitle,
+        globalPage: globalPage,
       ),
     );
   }

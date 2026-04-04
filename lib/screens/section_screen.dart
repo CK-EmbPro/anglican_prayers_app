@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../models/prayer_book_model.dart';
+import '../providers/prayer_book_provider.dart';
 import '../utils/app_colors.dart';
 import 'chapter_screen.dart';
 
@@ -30,7 +32,23 @@ class SectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.read<PrayerBookProvider>();
     final hasManyChapters = section.chapters.length > 1;
+
+    // Pre-compute global pages for this section's chapters
+    final chapterPages = <int, int>{};
+    for (final gc in provider.allChapters) {
+      if (gc.section.id == section.id) {
+        chapterPages[gc.chapter.id] = gc.globalPage;
+      }
+    }
+
+    final firstPage = chapterPages.values.isEmpty
+        ? 0
+        : chapterPages.values.reduce((a, b) => a < b ? a : b);
+    final lastPage = chapterPages.values.isEmpty
+        ? 0
+        : chapterPages.values.reduce((a, b) => a > b ? a : b);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -43,6 +61,17 @@ class SectionScreen extends StatelessWidget {
             backgroundColor: _accent,
             foregroundColor: Colors.white,
             iconTheme: const IconThemeData(color: Colors.white),
+            leading: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+              ),
+            ),
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.fromLTRB(56, 0, 16, 16),
               title: Text(
@@ -67,7 +96,7 @@ class SectionScreen extends StatelessWidget {
                   ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 60, 20, 0),
+                  padding: const EdgeInsets.fromLTRB(72, 60, 20, 0),
                   child: Text(
                     section.englishTitle,
                     style: GoogleFonts.lato(
@@ -86,26 +115,33 @@ class SectionScreen extends StatelessWidget {
             child: Container(
               color: AppColors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              child: Row(
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 8,
                 children: [
                   _StatChip(
-                    label: '${section.chapters.length} chapters',
+                    label: '${section.chapters.length} prayers',
                     icon: Icons.layers_outlined,
                     accent: _accent,
                   ),
-                  const SizedBox(width: 10),
                   _StatChip(
                     label: '${section.totalNonEmptyVerses} verses',
                     icon: Icons.format_quote,
                     accent: _accent,
                   ),
+                  if (firstPage > 0)
+                    _StatChip(
+                      label: firstPage == lastPage
+                          ? 'Prayer $firstPage'
+                          : 'Prayers $firstPage–$lastPage',
+                      icon: Icons.auto_stories_outlined,
+                      accent: _accent,
+                    ),
                 ],
               ),
             ),
           ),
-          const SliverToBoxAdapter(
-            child: Divider(height: 1),
-          ),
+          const SliverToBoxAdapter(child: Divider(height: 1)),
 
           // ── If single chapter → jump straight to reading ────────────────────
           if (!hasManyChapters)
@@ -114,6 +150,7 @@ class SectionScreen extends StatelessWidget {
                 section: section,
                 sectionIndex: sectionIndex,
                 accent: _accent,
+                globalPage: chapterPages[section.chapters.first.id] ?? 0,
               ),
             )
           else ...[
@@ -122,7 +159,7 @@ class SectionScreen extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
                 child: Text(
-                  'Chapters',
+                  'Prayers',
                   style: GoogleFonts.lato(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -141,6 +178,7 @@ class SectionScreen extends StatelessWidget {
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final chapter = section.chapters[index];
+                      final gPage = chapterPages[chapter.id] ?? 0;
                       return AnimationConfiguration.staggeredList(
                         position: index,
                         duration: const Duration(milliseconds: 400),
@@ -151,6 +189,7 @@ class SectionScreen extends StatelessWidget {
                               chapter: chapter,
                               index: index,
                               accent: _accent,
+                              globalPage: gPage,
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -158,6 +197,7 @@ class SectionScreen extends StatelessWidget {
                                     section: section,
                                     chapter: chapter,
                                     sectionIndex: sectionIndex,
+                                    globalPage: gPage,
                                   ),
                                 ),
                               ),
@@ -184,11 +224,13 @@ class _SingleChapterBanner extends StatelessWidget {
   final Section section;
   final int sectionIndex;
   final Color accent;
+  final int globalPage;
 
   const _SingleChapterBanner({
     required this.section,
     required this.sectionIndex,
     required this.accent,
+    required this.globalPage,
   });
 
   @override
@@ -204,6 +246,7 @@ class _SingleChapterBanner extends StatelessWidget {
               section: section,
               chapter: chapter,
               sectionIndex: sectionIndex,
+              globalPage: globalPage,
             ),
           ),
         ),
@@ -256,12 +299,14 @@ class _ChapterListTile extends StatelessWidget {
   final Chapter chapter;
   final int index;
   final Color accent;
+  final int globalPage;
   final VoidCallback onTap;
 
   const _ChapterListTile({
     required this.chapter,
     required this.index,
     required this.accent,
+    required this.globalPage,
     required this.onTap,
   });
 
@@ -303,7 +348,9 @@ class _ChapterListTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      chapter.title.isEmpty ? 'Chapter ${index + 1}' : chapter.title,
+                      chapter.title.isEmpty
+                          ? 'Prayer ${index + 1}'
+                          : chapter.title,
                       style: GoogleFonts.lato(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -327,12 +374,26 @@ class _ChapterListTile extends StatelessWidget {
                       ),
                     ],
                     const SizedBox(height: 4),
-                    Text(
-                      '${chapter.nonEmptyVerseCount} verses',
-                      style: GoogleFonts.lato(
-                        fontSize: 11,
-                        color: AppColors.textHint,
-                      ),
+                    Row(
+                      children: [
+                        Text(
+                          '${chapter.nonEmptyVerseCount} verses',
+                          style: GoogleFonts.lato(
+                            fontSize: 11,
+                            color: AppColors.textHint,
+                          ),
+                        ),
+                        if (globalPage > 0) ...[
+                          Text(
+                            '  ·  Prayer $globalPage',
+                            style: GoogleFonts.lato(
+                              fontSize: 11,
+                              color: accent.withValues(alpha: 0.7),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
