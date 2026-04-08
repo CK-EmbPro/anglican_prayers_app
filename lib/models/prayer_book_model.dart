@@ -8,33 +8,25 @@
 class Paragraph {
   final String text;
   final String type;
-  final String speaker;
 
   const Paragraph({
     required this.text,
     required this.type,
-    required this.speaker,
   });
 
   factory Paragraph.fromJson(Map<String, dynamic> json) {
     return Paragraph(
       text: json['text'] ?? '',
       type: json['type'] ?? 'prayer',
-      speaker: json['speaker'] ?? 'all',
     );
   }
 
-  Map<String, dynamic> toJson() =>
-      {'text': text, 'type': type, 'speaker': speaker};
+  Map<String, dynamic> toJson() => {'text': text, 'type': type};
 
   bool get isEmpty => text.trim().isEmpty;
   bool get isHeading => type == 'heading';
   bool get isRubric => type == 'rubric' || type == 'instruction';
-  bool get isResponse => type == 'response';
-  bool get isCollect => type == 'collect';
   bool get isScripture => type == 'scripture';
-  bool get isCreed => type == 'creed';
-  bool get isCanticle => type == 'canticle';
 }
 
 // ── PageContent ───────────────────────────────────────────────────────────────
@@ -315,66 +307,3 @@ class SearchResult {
   }
 }
 
-// ── Favourite item ────────────────────────────────────────────────────────────
-
-class FavouriteItem {
-  /// Unique key: "${pageNum}_${paragraphIndex}"
-  final String favKey;
-  final int pageNum;
-  final int paragraphIndex;
-  final String paragraphText;
-  final String paragraphType;
-  final int sectionId;
-  final String sectionTitle;
-  final String? subsectionId;
-  final String? subsectionTitle;
-  final DateTime savedAt;
-
-  const FavouriteItem({
-    required this.favKey,
-    required this.pageNum,
-    required this.paragraphIndex,
-    required this.paragraphText,
-    required this.paragraphType,
-    required this.sectionId,
-    required this.sectionTitle,
-    this.subsectionId,
-    this.subsectionTitle,
-    required this.savedAt,
-  });
-
-  String get breadcrumb {
-    if (subsectionTitle != null && subsectionTitle!.isNotEmpty) {
-      return '$sectionTitle  /  $subsectionTitle';
-    }
-    return sectionTitle;
-  }
-
-  Map<String, dynamic> toJson() => {
-        'favKey': favKey,
-        'pageNum': pageNum,
-        'paragraphIndex': paragraphIndex,
-        'paragraphText': paragraphText,
-        'paragraphType': paragraphType,
-        'sectionId': sectionId,
-        'sectionTitle': sectionTitle,
-        'subsectionId': subsectionId,
-        'subsectionTitle': subsectionTitle,
-        'savedAt': savedAt.toIso8601String(),
-      };
-
-  factory FavouriteItem.fromJson(Map<String, dynamic> json) {
-    return FavouriteItem(
-      favKey: json['favKey'] ?? '',
-      pageNum: json['pageNum'] ?? 0,
-      paragraphIndex: json['paragraphIndex'] ?? 0,
-      paragraphText: json['paragraphText'] ?? '',
-      paragraphType: json['paragraphType'] ?? '',
-      sectionId: json['sectionId'] ?? 0,
-      sectionTitle: json['sectionTitle'] ?? '',
-      subsectionId: json['subsectionId'],
-      subsectionTitle: json['subsectionTitle'],
-      savedAt: DateTime.tryParse(json['savedAt'] ?? '') ?? DateTime.now(),
-    );
-  }
-}

@@ -7,7 +7,6 @@ import '../utils/app_colors.dart';
 import '../widgets/section_card.dart';
 import 'section_screen.dart';
 import 'search_screen.dart';
-import 'favourites_screen.dart';
 import 'content_browser_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -29,7 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _LibraryTab(),
           ContentBrowserScreen(),
           SearchScreen(),
-          FavouritesScreen(),
         ],
       ),
       bottomNavigationBar: Container(
@@ -72,13 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   label: 'Ishakiro',
                   selected: _navIndex == 2,
                   onTap: () => setState(() => _navIndex = 2),
-                ),
-                _NavItem(
-                  icon: Icons.bookmark_border,
-                  activeIcon: Icons.bookmark,
-                  label: 'Ibyabitswe',
-                  selected: _navIndex == 3,
-                  onTap: () => setState(() => _navIndex = 3),
                 ),
               ],
             ),
@@ -127,6 +118,8 @@ class _NavItem extends StatelessWidget {
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
                 color: selected ? AppColors.primary : AppColors.grey400,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -188,21 +181,18 @@ class _LibraryTab extends StatelessWidget {
                       ),
                       if (book != null) ...[
                         const SizedBox(height: 10),
-                        Row(
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
                           children: [
                             _HeaderBadge(
-                              label:
-                                  'Ibice ${book.metadata.totalSections}',
+                              label: 'Ibice ${book.metadata.totalSections}',
                             ),
-                            const SizedBox(width: 8),
                             _HeaderBadge(
-                              label:
-                                  'Amapaji ${book.metadata.totalPages}',
+                              label: 'Amapaji ${book.metadata.totalPages}',
                             ),
-                            const SizedBox(width: 8),
                             _HeaderBadge(
-                              label:
-                                  'Paragarafe ${book.metadata.totalParagraphs}',
+                              label: 'Paragarafe ${book.metadata.totalParagraphs}',
                             ),
                           ],
                         ),

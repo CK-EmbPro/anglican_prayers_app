@@ -9,12 +9,9 @@ import 'chapter_screen.dart';
 const _typeFilters = [
   ('Ubwoko bwose', null),
   ('Gusenga', 'prayer'),
-  ('Amasengesho', 'collect'),
-  ('Igisubizo', 'response'),
   ('Ibyanditswe', 'scripture'),
-  ("Imvugo y'Ukwizera", 'creed'),
-  ('Indirimbo', 'canticle'),
   ('Amabwiriza', 'rubric'),
+  ('Umutwe', 'heading'),
 ];
 
 class SearchScreen extends StatefulWidget {
@@ -513,8 +510,6 @@ class _ResultCard extends StatelessWidget {
     required this.provider,
   });
 
-  String get _favKey => '${result.pageNum}_${result.paragraphIndex}';
-
   void _navigateTo(BuildContext context) {
     final fp = provider.pageAtNumber(result.pageNum);
     if (fp == null) return;
@@ -524,24 +519,8 @@ class _ResultCard extends StatelessWidget {
     );
   }
 
-  void _toggleFav() {
-    provider.toggleFavourite(
-      favKey: _favKey,
-      pageNum: result.pageNum,
-      paragraphIndex: result.paragraphIndex,
-      paragraphText: result.paragraphText,
-      paragraphType: result.paragraphType,
-      sectionId: result.sectionId,
-      sectionTitle: result.sectionTitle,
-      subsectionId: result.subsectionId,
-      subsectionTitle: result.subsectionTitle,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isFav = provider.isFavourite(_favKey);
-
     return GestureDetector(
       onTap: () => _navigateTo(context),
       child: Container(
@@ -554,30 +533,15 @@ class _ResultCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    result.breadcrumb,
-                    style: GoogleFonts.lato(
-                      fontSize: 11,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: _toggleFav,
-                  child: Icon(
-                    isFav ? Icons.bookmark : Icons.bookmark_border,
-                    size: 16,
-                    color: isFav ? AppColors.favourite : AppColors.grey400,
-                  ),
-                ),
-              ],
+            Text(
+              result.breadcrumb,
+              style: GoogleFonts.lato(
+                fontSize: 11,
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 8),
             _HighlightedText(text: result.paragraphText, query: query),
@@ -672,14 +636,9 @@ class _TypeBadge extends StatelessWidget {
 
   Color get _color {
     switch (type) {
-      case 'collect':
-        return AppColors.primary;
       case 'scripture':
         return AppColors.scriptureColor;
-      case 'response':
-        return AppColors.primaryDark;
       case 'rubric':
-      case 'instruction':
         return AppColors.rubricColor;
       case 'heading':
         return AppColors.headingColor;

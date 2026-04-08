@@ -210,8 +210,6 @@ class _PageReadingScreenState extends State<PageReadingScreen> {
       ),
       body: Column(
         children: [
-          // Persistent legend bar above the swipeable pages
-          _LegendBar(),
           // Page swipe hint strip
           _SwipeHint(
             currentPage: fp.pageNum,
@@ -260,14 +258,18 @@ class _SwipeHint extends StatelessWidget {
         children: [
           Icon(Icons.swipe, size: 14, color: AppColors.grey400),
           const SizedBox(width: 6),
-          Text(
-            'Sunika ujye ku paji ikurikira cyangwa ibanze',
-            style: GoogleFonts.lato(
-              fontSize: 11,
-              color: AppColors.textHint,
+          Flexible(
+            child: Text(
+              'Sunika ujye ku paji ikurikira cyangwa ibanze',
+              style: GoogleFonts.lato(
+                fontSize: 11,
+                color: AppColors.textHint,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: onGoTo,
             child: Text(
@@ -309,15 +311,7 @@ class _SinglePageContentState extends State<_SinglePageContent>
       itemCount: fp.page.content.length,
       itemBuilder: (context, index) {
         final para = fp.page.content[index];
-        return ParagraphTile(
-          paragraph: para,
-          pageNum: fp.pageNum,
-          paragraphIndex: index,
-          sectionId: fp.section.id,
-          sectionTitle: fp.section.title,
-          subsectionId: fp.subsection?.id,
-          subsectionTitle: fp.subsection?.title,
-        );
+        return ParagraphTile(paragraph: para);
       },
     );
   }
@@ -404,148 +398,3 @@ class _FontButton extends StatelessWidget {
   }
 }
 
-// ── Legend bar (Indanguro yo Gusome) ─────────────────────────────────────────
-
-class _LegendBar extends StatefulWidget {
-  @override
-  State<_LegendBar> createState() => _LegendBarState();
-}
-
-class _LegendBarState extends State<_LegendBar> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 250),
-      child: GestureDetector(
-        onTap: () => setState(() => _expanded = !_expanded),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          color: AppColors.grey100,
-          child: _expanded
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Indanguro yo Gusome',
-                          style: GoogleFonts.lato(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textSecondary,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const Spacer(),
-                        const Icon(Icons.keyboard_arrow_up,
-                            size: 16, color: AppColors.grey600),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 8,
-                      children: const [
-                        _LegendItem(
-                          color: AppColors.rubricColor,
-                          label: 'Amabwiriza',
-                          italic: true,
-                        ),
-                        _LegendItem(
-                          color: AppColors.primary,
-                          label: 'Amasengesho',
-                          bordered: true,
-                        ),
-                        _LegendItem(
-                          color: AppColors.scriptureColor,
-                          label: 'Ibyanditswe',
-                        ),
-                        _LegendItem(
-                          color: AppColors.primaryLight,
-                          label: 'Igisubizo',
-                          bordered: true,
-                        ),
-                        _LegendItem(
-                          color: AppColors.headingColor,
-                          label: 'Umutwe',
-                          bold: true,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Um. = Umupadri   It. = Itorero',
-                      style: GoogleFonts.lato(
-                        fontSize: 11,
-                        color: AppColors.textHint,
-                      ),
-                    ),
-                  ],
-                )
-              : Row(
-                  children: [
-                    Text(
-                      'Indanguro yo Gusome',
-                      style: GoogleFonts.lato(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const Spacer(),
-                    const Icon(Icons.keyboard_arrow_down,
-                        size: 16, color: AppColors.grey600),
-                  ],
-                ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LegendItem extends StatelessWidget {
-  final Color color;
-  final String label;
-  final bool italic;
-  final bool bold;
-  final bool bordered;
-
-  const _LegendItem({
-    required this.color,
-    required this.label,
-    this.italic = false,
-    this.bold = false,
-    this.bordered = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: bordered ? color.withValues(alpha: 0.15) : color,
-            borderRadius: BorderRadius.circular(2),
-            border: bordered
-                ? Border(left: BorderSide(color: color, width: 2))
-                : null,
-          ),
-        ),
-        const SizedBox(width: 5),
-        Text(
-          label,
-          style: GoogleFonts.lato(
-            fontSize: 11,
-            color: color,
-            fontStyle: italic ? FontStyle.italic : FontStyle.normal,
-            fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
-          ),
-        ),
-      ],
-    );
-  }
-}
