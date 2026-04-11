@@ -171,14 +171,18 @@ class _PageReadingScreenState extends State<PageReadingScreen> {
                       style: GoogleFonts.lato(
                           fontSize: 11, color: AppColors.grey400)),
                 ],
-                GestureDetector(
-                  onTap: () => _showGoToDialog(context),
-                  child: Text(
-                    'Paji ${fp.pageNum} muri $total',
-                    style: GoogleFonts.lato(
-                      fontSize: 11,
-                      color: _accent,
-                      fontWeight: FontWeight.w600,
+                Flexible(
+                  child: GestureDetector(
+                    onTap: () => _showGoToDialog(context),
+                    child: Text(
+                      'Paji ${fp.pageNum} muri $total',
+                      style: GoogleFonts.lato(
+                        fontSize: 11,
+                        color: _accent,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
@@ -302,16 +306,41 @@ class _SinglePageContentState extends State<_SinglePageContent>
   @override
   bool get wantKeepAlive => true;
 
+  /// Groups consecutive table_header / table_row paragraphs into a single
+  /// List<Paragraph> item so they can be rendered as one table widget.
+  static List<dynamic> _buildDisplayItems(List<Paragraph> content) {
+    final items = <dynamic>[];
+    List<Paragraph>? tableGroup;
+    for (final para in content) {
+      if (para.isTableHeader || para.isTableRow) {
+        tableGroup ??= [];
+        tableGroup.add(para);
+      } else {
+        if (tableGroup != null) {
+          items.add(tableGroup);
+          tableGroup = null;
+        }
+        items.add(para);
+      }
+    }
+    if (tableGroup != null) items.add(tableGroup);
+    return items;
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final fp = widget.flatPage;
+    final displayItems = _buildDisplayItems(fp.page.content);
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-      itemCount: fp.page.content.length,
+      itemCount: displayItems.length,
       itemBuilder: (context, index) {
-        final para = fp.page.content[index];
-        return ParagraphTile(paragraph: para);
+        final item = displayItems[index];
+        if (item is List) {
+          return _ZaburiTable(paragraphs: item.cast<Paragraph>());
+        }
+        return ParagraphTile(paragraph: item as Paragraph);
       },
     );
   }
@@ -393,6 +422,122 @@ class _FontButton extends StatelessWidget {
           border: Border.all(color: accent.withValues(alpha: 0.2)),
         ),
         child: Icon(icon, size: 18, color: accent),
+      ),
+    );
+  }
+}
+
+// ── Zaburi Za Dawidi table ─────────────────────────────────────────────────────
+
+class _ZaburiTable extends StatelessWidget {
+  final List<Paragraph> paragraphs;
+
+  const _ZaburiTable({required this.paragraphs});
+
+  @override
+  Widget build(BuildContext context) {
+    final fontSize = context.watch<PrayerBookProvider>().fontSize;
+
+    Paragraph? header;
+    final rows = <Paragraph>[];
+    for (final p in paragraphs) {
+      if (p.isTableHeader) {
+        header = p;
+      } else if (p.isTableRow) {
+        rows.add(p);
+      }
+    }
+    if (header == null && rows.isEmpty) return const SizedBox.shrink();
+
+    final headerCols = header != null
+        ? header.text.split('|')
+        : ['Umunsi', 'Izo mugitondo', 'Izo nimugoroba'];
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.divider),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Table(
+        columnWidths: const {
+          0: FlexColumnWidth(1.2),
+          1: FlexColumnWidth(2.4),
+          2: FlexColumnWidth(2.4),
+        },
+        border: TableBorder(
+          horizontalInside: BorderSide(color: AppColors.divider, width: 0.8),
+          verticalInside: BorderSide(color: AppColors.divider, width: 0.8),
+        ),
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        children: [
+          // Header row
+          TableRow(
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.10),
+            ),
+            children: [
+              for (final col in headerCols)
+                _TableCell(
+                  text: col,
+                  isHeader: true,
+                  fontSize: fontSize,
+                ),
+            ],
+          ),
+          // Data rows
+          for (int ri = 0; ri < rows.length; ri++) ...[
+            TableRow(
+              decoration: BoxDecoration(
+                color: ri.isEven ? Colors.white : const Color(0xFFF6F9FC),
+              ),
+              children: () {
+                final cols = rows[ri].text.split('|');
+                while (cols.length < 3) {
+                  cols.add('');
+                }
+                return [
+                  for (final col in cols)
+                    _TableCell(
+                      text: col,
+                      isHeader: false,
+                      fontSize: fontSize,
+                    ),
+                ];
+              }(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TableCell extends StatelessWidget {
+  final String text;
+  final bool isHeader;
+  final double fontSize;
+
+  const _TableCell({
+    required this.text,
+    required this.isHeader,
+    required this.fontSize,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: GoogleFonts.lato(
+          fontSize: isHeader ? fontSize - 1 : fontSize - 0.5,
+          fontWeight: isHeader ? FontWeight.w700 : FontWeight.w400,
+          color: isHeader ? AppColors.primary : AppColors.textPrimary,
+          height: 1.4,
+        ),
       ),
     );
   }

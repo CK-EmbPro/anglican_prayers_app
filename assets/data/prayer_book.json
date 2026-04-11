@@ -17990,128 +17990,128 @@
               "text": "Uko zisomwa buri munsi kumara Ukwezi"
             },
             {
-              "type": "heading",
-              "text": "Umunsi  |  izo mugitondo  |  iza nimugoroba"
+              "type": "table_header",
+              "text": "Umunsi|izo mugitondo|iza nimugoroba"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 1  |  1-5  |  6-8"
+              "type": "table_row",
+              "text": "1|1-5|6-8"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 2  |  9-11  |  12-14"
+              "type": "table_row",
+              "text": "2|9-11|12-14"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 3  |  15-17  |  18"
+              "type": "table_row",
+              "text": "3|15-17|18"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 4  |  19-21  |  22-23"
+              "type": "table_row",
+              "text": "4|19-21|22-23"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 5  |  24-26  |  27-29"
+              "type": "table_row",
+              "text": "5|24-26|27-29"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 6  |  30-31  |  32-34"
+              "type": "table_row",
+              "text": "6|30-31|32-34"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 7  |  35-36  |  37"
+              "type": "table_row",
+              "text": "7|35-36|37"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 8  |  38-40  |  41-43"
+              "type": "table_row",
+              "text": "8|38-40|41-43"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 9  |  44-46  |  47-49"
+              "type": "table_row",
+              "text": "9|44-46|47-49"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 10  |  50-52  |  53-55"
+              "type": "table_row",
+              "text": "10|50-52|53-55"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 11  |  56-58  |  59-61"
+              "type": "table_row",
+              "text": "11|56-58|59-61"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 12  |  62-64  |  65-67"
+              "type": "table_row",
+              "text": "12|62-64|65-67"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 13  |  68  |  69-70"
+              "type": "table_row",
+              "text": "13|68|69-70"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 14  |  71-72  |  73-74"
+              "type": "table_row",
+              "text": "14|71-72|73-74"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 15  |  75-77  |  78"
+              "type": "table_row",
+              "text": "15|75-77|78"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 16  |  79-81  |  82-85"
+              "type": "table_row",
+              "text": "16|79-81|82-85"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 17  |  86-88  |  89"
+              "type": "table_row",
+              "text": "17|86-88|89"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 18  |  90-92  |  93-94"
+              "type": "table_row",
+              "text": "18|90-92|93-94"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 19  |  95-97  |  98-101"
+              "type": "table_row",
+              "text": "19|95-97|98-101"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 20  |  102-103  |  104"
+              "type": "table_row",
+              "text": "20|102-103|104"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 21  |  105  |  106"
+              "type": "table_row",
+              "text": "21|105|106"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 22  |  107  |  108-109"
+              "type": "table_row",
+              "text": "22|107|108-109"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 23  |  110-113  |  114-115"
+              "type": "table_row",
+              "text": "23|110-113|114-115"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 24  |  116-118  |  119:1-32"
+              "type": "table_row",
+              "text": "24|116-118|119:1-32"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 25  |  119:33-72  |  119:73-104"
+              "type": "table_row",
+              "text": "25|119:33-72|119:73-104"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 26  |  119:105-144  |  119:145-176"
+              "type": "table_row",
+              "text": "26|119:105-144|119:145-176"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 27  |  120-125  |  126-131"
+              "type": "table_row",
+              "text": "27|120-125|126-131"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 28  |  132-135  |  136-138"
+              "type": "table_row",
+              "text": "28|132-135|136-138"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 29  |  139-141  |  142-143"
+              "type": "table_row",
+              "text": "29|139-141|142-143"
             },
             {
-              "type": "prayer",
-              "text": "Umunsi 30  |  114-146  |  147-150"
+              "type": "table_row",
+              "text": "30|114-146|147-150"
             }
           ]
         }

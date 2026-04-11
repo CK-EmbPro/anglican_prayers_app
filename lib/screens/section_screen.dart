@@ -255,7 +255,9 @@ class _SubsectionTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Row(
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 2,
                       children: [
                         Text(
                           'Paragarafe ${subsection.totalParagraphs}',
@@ -265,7 +267,7 @@ class _SubsectionTile extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '  ·  Amapaji ${subsection.startPage}–${subsection.endPage}',
+                          '·  Amapaji ${subsection.startPage}–${subsection.endPage}',
                           style: GoogleFonts.lato(
                             fontSize: 11,
                             color: accent.withValues(alpha: 0.7),

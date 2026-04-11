@@ -27,6 +27,8 @@ class Paragraph {
   bool get isHeading => type == 'heading';
   bool get isRubric => type == 'rubric' || type == 'instruction';
   bool get isScripture => type == 'scripture';
+  bool get isTableHeader => type == 'table_header';
+  bool get isTableRow => type == 'table_row';
 }
 
 // ── PageContent ───────────────────────────────────────────────────────────────
