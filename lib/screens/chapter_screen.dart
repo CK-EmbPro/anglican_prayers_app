@@ -453,30 +453,18 @@ class _ZaburiTable extends StatelessWidget {
         ? header.text.split('|')
         : ['Umunsi', 'Izo mugitondo', 'Izo nimugoroba'];
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.divider),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      clipBehavior: Clip.hardEdge,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Table(
         columnWidths: const {
           0: FlexColumnWidth(1.2),
           1: FlexColumnWidth(2.4),
           2: FlexColumnWidth(2.4),
         },
-        border: TableBorder(
-          horizontalInside: BorderSide(color: AppColors.divider, width: 0.8),
-          verticalInside: BorderSide(color: AppColors.divider, width: 0.8),
-        ),
         defaultVerticalAlignment: TableCellVerticalAlignment.middle,
         children: [
           // Header row
           TableRow(
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.10),
-            ),
             children: [
               for (final col in headerCols)
                 _TableCell(
@@ -487,13 +475,10 @@ class _ZaburiTable extends StatelessWidget {
             ],
           ),
           // Data rows
-          for (int ri = 0; ri < rows.length; ri++) ...[
+          for (final row in rows) ...[
             TableRow(
-              decoration: BoxDecoration(
-                color: ri.isEven ? Colors.white : const Color(0xFFF6F9FC),
-              ),
               children: () {
-                final cols = rows[ri].text.split('|');
+                final cols = row.text.split('|');
                 while (cols.length < 3) {
                   cols.add('');
                 }
@@ -535,7 +520,7 @@ class _TableCell extends StatelessWidget {
         style: GoogleFonts.lato(
           fontSize: isHeader ? fontSize - 1 : fontSize - 0.5,
           fontWeight: isHeader ? FontWeight.w700 : FontWeight.w400,
-          color: isHeader ? AppColors.primary : AppColors.textPrimary,
+          color: AppColors.textPrimary,
           height: 1.4,
         ),
       ),
