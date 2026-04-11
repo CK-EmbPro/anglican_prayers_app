@@ -129,7 +129,7 @@ class SectionCard extends StatelessWidget {
                           _StatPill(
                             icon: Icons.layers_outlined,
                             label: section.hasSubsections
-                                ? 'Imisegura ${section.subsections!.length}'
+                                ? 'Amapaji ${section.subsections!.length}'
                                 : 'Amapaji ${section.pageCount}',
                             accent: accent,
                           ),

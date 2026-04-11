@@ -88,18 +88,13 @@ class SectionScreen extends StatelessWidget {
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  if (section.hasSubsections)
-                    _StatChip(
-                      label: 'Imisegura ${section.subsections!.length}',
-                      icon: Icons.layers_outlined,
-                      accent: _accent,
-                    )
-                  else
-                    _StatChip(
-                      label: 'Amapaji ${section.pageCount}',
-                      icon: Icons.auto_stories_outlined,
-                      accent: _accent,
-                    ),
+                  _StatChip(
+                    label: section.hasSubsections
+                        ? 'Amapaji ${section.subsections!.length}'
+                        : 'Amapaji ${section.pageCount}',
+                    icon: Icons.auto_stories_outlined,
+                    accent: _accent,
+                  ),
                   _StatChip(
                     label: 'Paragarafe ${section.totalParagraphs}',
                     icon: Icons.format_quote,
